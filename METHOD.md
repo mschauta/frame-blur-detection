@@ -434,13 +434,13 @@ the model can learn about unseen videos.
   | 2 | 84.0 / 68.4% (15.5), 0.965 / 0.935 | 84.1 / 70.9% (13.2), 0.972 / 0.940 | 87.7 / 74.5% (13.2), 0.980 / 0.948 |
   | 3 | 89.8 / 72.8% (17.0), 0.978 / 0.944 | 87.9 / 73.4% (14.5), 0.982 / 0.945 | 88.5 / 72.6% (15.9), 0.987 / 0.948 |
   | 4 | 91.8 / 73.6% (18.2), 0.987 / 0.947 | 88.9 / 71.6% (17.3), 0.989 / 0.944 | 92.5 / 76.1% (16.4), 0.993 / 0.953 |
-  | 5 | 93.6 / 73.6% (20.0), 0.992 / 0.949 | 91.2 / 71.7% (19.5), 0.994 / 0.944 | 94.1 / 75.1% (18.9), 0.997 / 0.953 |
+  | 5 | 93.6 / 73.6% (20.0), 0.992 / 0.949 | 91.2 / 71.6% (19.6), 0.994 / 0.944 | 94.1 / 75.1% (18.9), 0.997 / 0.953 |
 
   Observations: on the training frames every input keeps improving to the end (AUC 0.992–0.997, 91–94% kept), while on
   unseen videos the curves flatten after the third pass; the gap therefore grows steadily (to 19–20 points at 95%).
   None of the models reaches 100% on its own training frames. RGB learns its training images fastest; the edge
   fingerprint starts lowest but reaches the highest training level of the two colourless inputs; grayscale has the
-  smallest gap early on but the lowest training level at the end. (Grayscale pass 5: epochs 78–98, final epoch pending.)
+  smallest gap early on but the lowest training level at the end.
 - The validation curve oscillates with the data cycles (Section 8); single epochs are not compared, but averages over
   blur passes.
 
@@ -475,7 +475,7 @@ refused.
 | DINOv3 ConvNeXt-Small | other pre-training, same recipe | behind ImageNet in every phase at this learning rate; ~3× noisier epoch to epoch; ends at AUC 0.936 |
 | **RGB, 100 epochs** (publishable) | plain image instead of the fingerprint | per-pass means settle at AUC 0.953, ~85 / 75–76 / 62–63% |
 | **edge fingerprint, 100 epochs** (publishable) | same recipe, fingerprint input | slower start; reaches the RGB level by the 3rd pass (AUC 0.944, 82.9 / 72.8 / 57.5%); ends at AUC 0.949, ~83 / 73.6 / 58% |
-| **grayscale, 100 epochs** (publishable) | image without colour (linear luminance) | running; by the 3rd pass at the level of the other two (AUC 0.945, 84.4 / 73.3 / 55.3%) |
+| **grayscale, 100 epochs** (publishable) | image without colour (linear luminance) | at the level of the other two by the 3rd pass (AUC 0.945, 84.5 / 73.4 / 55.2%); no further gain, ends at AUC 0.944, 84.0 / 71.6 / 54.6% |
 
 Preliminary reading: all three inputs converge to a similar level by the third pass over the blurred frames. RGB learns
 faster and more evenly and ends a few points ahead (about 2 points at 95%, 4–5 points at 98% in the last two passes); the
