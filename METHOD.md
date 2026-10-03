@@ -374,6 +374,41 @@ sampler does not re-weight them. Flips and 90° rotations are applied per sample
 The watermark is masked on 50% of the frame samples and visible on the other 50%: the model has to learn that a sharp
 overlay does not make a blurred frame sharp.
 
+### 8.1 Repetition: passes over the data, and frames as permutations of shots
+
+An epoch draws 3,000 samples from each of the four strata, without repetition inside a stratum until it is exhausted,
+then reshuffled. The strata differ in size, so they are revisited at different rates:
+
+| stratum | pool (training) | one full pass | passes in 100 epochs | what a repetition is |
+|---|---|---|---|---|
+| sharp frames (`sss`) | 13,198 | ~4.4 epochs | ~22.7 | the same frame (only flips / 90° rotations differ) |
+| photos, each class | 33,484 | ~11.2 epochs | ~9.0 | a different variant every time (192-point grid of length, direction, CRF) |
+| blurred frames (`bbb`, `bsb`) | 58,364 | ~19.5 epochs | ~5.1 | the same frame |
+
+**Why the analysis counts passes over the blurred frames.** The blurred frames are the largest pool and the slowest
+cycle: only after one blurred-frame pass has the model seen every training sample at least once. Within one such pass
+the sharp frames are revisited about 4.4 times and the photos about twice. The validation curves oscillate with these
+cycles, so results are compared as means per blurred-frame pass, not as single epochs.
+
+**The frames are discrete samples, but not independent ones.** Counted back to shots (the near-identical framing units of
+Section 3):
+
+| | value |
+|---|---|
+| training shots | 2,502 |
+| shots that give blurred frames | 1,943 (median 15, mean 30, max 672 blurred frames per shot) |
+| shots that give sharp frames | 1,742 (median 3, mean 7.6, max 152 sharp frames per shot) |
+| shots that give both (pairs) | 1,183, holding 62% of the blurred and 71% of the sharp training frames |
+| blurred frames per sharp frame in these paired shots | ~3.9 |
+| contiguous runs of consecutive blurred frames (≤ 0.05 s apart) | 11,875; median 2 frames, mean 4.9, 90th percentile 11, max 523 |
+
+Consecutive blurred frames 33 ms apart are permutations of one motion; each run is close to one blur situation. So the
+58,364 blurred frames come from about 11,900 runs in 1,943 shots, and over 100 epochs each run is drawn about 25 times
+on average (in different neighbouring frames). In the 1,183 paired shots each sharp frame stands against about four
+blurred frames of the same scene, light, camera and coding, which is the native counterpart of a photo's sharp /
+blurred pair. The number of distinct blur situations, not the number of blurred frames, is therefore what bounds what
+the model can learn about unseen videos.
+
 ## 9. Evaluation
 
 - **Photo level (exact labels):** AUC on held-out photos, 2,000 sharp and 2,000 blurred, one fixed variant each.
