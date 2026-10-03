@@ -385,7 +385,27 @@ overlay does not make a blurred frame sharp.
   motion ≤ 4 px, camera ≤ 1.5 px; blurred: `bbb`/`bsb`, rank ≥ 0.8, regional motion ≥ 10 px). 533 sharp and 1,788 blurred
   validation frames. Reported: AUC on them, and the confident-sharp share kept when at most 1% of the confident-blurred
   frames pass.
-- **Train side:** the same figures on a fixed subset of training frames, to follow the generalisation gap.
+- **Train side:** every model was evaluated after every epoch not only on unseen data but also on a fixed subset of its
+  own training data (~6,600 training frames, balanced per video, plus 800 training photos, the same subset in every
+  epoch), with the threshold taken from the validation frames. This shows how well the model learned the training
+  images themselves and how the gap to unseen videos develops, which is not possible in every training setup.
+
+  Sharp training frames kept at 95% blurred recall (train / validation, the gap, and the frame AUC on both sides),
+  mean per pass over the blurred frames, the three publishable 100-epoch runs:
+
+  | pass | edge fingerprint (p99) | grayscale | RGB |
+  |---|---|---|---|
+  | 1 | 71.1 / 60.5% (gap 10.6), AUC 0.930 / 0.914 | 71.5 / 62.7% (8.8), 0.943 / 0.925 | 80.5 / 69.3% (11.2), 0.957 / 0.941 |
+  | 2 | 84.0 / 68.4% (15.5), 0.965 / 0.935 | 84.1 / 70.9% (13.2), 0.972 / 0.940 | 87.7 / 74.5% (13.2), 0.980 / 0.948 |
+  | 3 | 89.8 / 72.8% (17.0), 0.978 / 0.944 | 87.9 / 73.4% (14.5), 0.982 / 0.945 | 88.5 / 72.6% (15.9), 0.987 / 0.948 |
+  | 4 | 91.8 / 73.6% (18.2), 0.987 / 0.947 | 88.9 / 71.6% (17.3), 0.989 / 0.944 | 92.5 / 76.1% (16.4), 0.993 / 0.953 |
+  | 5 | 93.6 / 73.6% (20.0), 0.992 / 0.949 | 91.2 / 71.7% (19.5), 0.994 / 0.944 | 94.1 / 75.1% (18.9), 0.997 / 0.953 |
+
+  Observations: on the training frames every input keeps improving to the end (AUC 0.992–0.997, 91–94% kept), while on
+  unseen videos the curves flatten after the third pass; the gap therefore grows steadily (to 19–20 points at 95%).
+  None of the models reaches 100% on its own training frames. RGB learns its training images fastest; the edge
+  fingerprint starts lowest but reaches the highest training level of the two colourless inputs; grayscale has the
+  smallest gap early on but the lowest training level at the end. (Grayscale pass 5: epochs 78–98, final epoch pending.)
 - The validation curve oscillates with the data cycles (Section 8); single epochs are not compared, but averages over
   blur passes.
 
