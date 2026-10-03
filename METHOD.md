@@ -16,6 +16,12 @@ never taught as acceptable.
 The cost of the two errors is **asymmetric**. A blurred frame accepted as sharp is the expensive error; rejecting some
 sharp frames is acceptable. All evaluation is built around this (Section 9).
 
+**How the experiment evolved.** The experiment started as training a detector on the blur fingerprint alone (the edge
+residual of Section 7), on the hypothesis that the finest edge layer carries the blur pattern while suppressing the
+content. Its results, in particular that the fingerprint alone reached a high level, prompted the comparison with the
+plain RGB image and with a grayscale image, which separates the contribution of the frequency band (fingerprint vs
+grayscale) from that of colour (grayscale vs RGB).
+
 **Prior work this builds on.** The edge fingerprint (Section 7) comes from our own earlier study,
 [RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling), which reconstructs a continuous RGB mesh from
 pixel-centre samples and examined in detail how much edge and thin-feature energy different mesh reconstructions lose,
@@ -488,7 +494,9 @@ ablation with masked edges.
 **Note on resumed runs.** Each of the three publishable runs was resumed once from a checkpoint (RGB after an operating-
 system restart; edge fingerprint and grayscale after the same data-loader error at the same step). On resume the sampler order of the interrupted epoch is reshuffled, so a resumed run is not
 sample-for-sample identical to an uninterrupted one. The data-loader error was traced to a single synthetic frame whose
-raw bytes happened to begin with "ID3", which the video encoder's input parser took for a metadata tag.
+raw bytes happened to begin with "ID3", which the video encoder's input parser took for a metadata tag. The photo synthesis
+has since been fixed (such a frame is passed in BGR byte order) and covered by a regression test; the three runs
+were made before the fix.
 
 ## 12. Data availability
 
