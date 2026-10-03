@@ -16,6 +16,12 @@ never taught as acceptable.
 The cost of the two errors is **asymmetric**. A blurred frame accepted as sharp is the expensive error; rejecting some
 sharp frames is acceptable. All evaluation is built around this (Section 9).
 
+**Prior work this builds on.** The edge fingerprint (Section 7) comes from our own earlier study,
+[RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling), which reconstructs a continuous RGB mesh from
+pixel-centre samples and examined in detail how much edge and thin-feature energy different mesh reconstructions lose,
+and how motion-blur patterns appear in that loss. The blur detector uses that study's simplest reconstruction, `m09`,
+as its edge detector.
+
 **Scope of the results.** All statements hold for the material used here: people-centred films and videos with a
 narrowed theme, recorded in extreme close-up, close-up, medium and long shots, indoors and outdoors, with backgrounds
 and many objects. Testing on other domains (nature films, other genres) is future work.
@@ -294,8 +300,15 @@ is learned from the frames.
 
 ## 7. Model input
 
-**Edge fingerprint.** `d = Y − K * Y`, where `Y` is the linear-light luminance (Rec. 709 weights) and `K` the 3×3 kernel
-`[3 10 3; 10 92 10; 3 10 3] / 144` with replicated borders. `d` keeps only the finest edge layer: a doubled contour or
+**Edge fingerprint.** The edge detector is our own, taken from the earlier
+[RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling) study rather than a standard operator (Sobel,
+Laplacian), because that study had examined in detail the edge loss of the different mesh reconstructions and how
+blur patterns show in it. `m09` is the 9-node, uncalibrated biquadratic (Q2) mesh built from the pixel-centre samples
+(corner and edge-midpoint nodes reconstructed from the neighbouring samples), integrated back over each source pixel's
+own area. On the identity grid this equals a fixed 3×3 kernel `K = [3 10 3; 10 92 10; 3 10 3] / 144` with replicated
+borders (verified numerically to 2·10⁻¹⁵). The fingerprint is the part of the image this reconstruction does not keep:
+`d = Y − K * Y`, where `Y` is the linear-light luminance (Rec. 709 weights). In the mesh study this residual is exactly
+the edge and thin-feature contrast that the uncalibrated mesh smooths away and that area calibration restores. `d` keeps only the finest edge layer: a doubled contour or
 parallel bands along the motion direction appear as paired positive / negative lines.
 
 **Why the sign matters.** At an edge, `d` is negative on the darker side and positive on the brighter side. Which of the
