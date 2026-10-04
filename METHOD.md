@@ -463,6 +463,9 @@ the model can learn about unseen videos.
 | batch | 8 images × 2 accumulation steps (effective 16), batches bucketed by image shape |
 | epoch | 12,000 samples, ~13.6 min including validation (~25 images/s) |
 | runs | no early stopping; every epoch saved |
+| labelling (VLM teacher) | Qwen3.5-4B, bf16, on the same GPU; three questions per image, batches of 4, greedy decoding |
+| labelling throughput | ~1,660 frames/h inside the import pipeline (operator's figure); ~2,900 images/h in a standalone probe on 1080p photos |
+| labelling memory | up to ~28.7 GB of GPU memory at 1620 × 1080 inputs in batches of 4 (largely the allocator's cache), utilisation fluctuating ~30–93% (image loading and answer parsing run on the CPU between batches) |
 
 **Provenance.** Each publishable run records, at start, the SHA-256 of every source file, the configuration, the index,
 the frame selection and the initial weights, plus the software and hardware versions; a resume with changed code is
