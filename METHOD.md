@@ -150,7 +150,11 @@ answers are kept separately as a three-letter code, one letter per question: `s`
 **Choice of model and prompts.** Several vision-language models and model sizes were tried (Qwen3.5 at 0.8B, 2B, 4B and 9B among them);
 Qwen3.5-4B (bf16) was chosen: it was as reliable as the larger model on the test images and faster. Its main advantage for this material is that it can judge blur also on extreme
 close-ups and close-ups and on large, unstructured skin surfaces, where edge-based measurements have little to work
-with. The prompts were first tested interactively in ComfyUI with several models and weights, and then
+with. The prompts were first tested interactively in ComfyUI with several models and weights, on sharp and
+blurred images, and in particular on extreme close-ups and close-ups that the measurement rated blurred but that looked
+sharp to the eye. In these tests the teacher resolved that contradiction: its answers followed human perception rather
+than the measurement. The experiments with the two sharpness questions were prompted by the observation that on some
+images the teacher judged too strictly with the Q3 wording and more tolerantly with the Q2 wording. The prompts were then
 shaped further by testing them on many images: simple, short, closed (yes / no) questions whose answers
 are easy to parse. Like every such model, it is prompt-sensitive, which was also seen during the processing.
 
