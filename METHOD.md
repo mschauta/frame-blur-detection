@@ -165,9 +165,9 @@ combinations in which the answers contradict each other mark the uncertain cases
 The wording is the threshold. In a pilot on 156 frames, Q1 called 24% blurred, Q2 32% and Q3 72%: Q3 is a much stricter
 version of Q2 that differs by one word.
 
-**Consistency of labels and measurements.** Every frame used here was labelled with the final frozen teacher and
-measured with the final measurement; earlier labels and measurements were redone, so the labels and measured values of
-all frames are directly comparable.
+**Consistency of labels and measurements.** Every frame used here was labelled with the same frozen teacher and
+measured with the same method; earlier labels and measurements were redone, so the labels and measured values of all
+frames are directly comparable.
 
 **Identity of the teacher.** The teacher is a byte-identical frozen copy (code, prompt, generation settings, weights),
 identified by hashes. Before a video is labelled, three control images with recorded replies are asked again; any
