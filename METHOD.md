@@ -150,7 +150,8 @@ answers are kept separately as a three-letter code, one letter per question: `s`
 **Choice of model and prompts.** Several vision-language models and model sizes were tried (Qwen3.5 at 0.8B, 2B, 4B and 9B among them);
 Qwen3.5-4B (bf16) was chosen: it was as reliable as the larger model on the test images and faster. Its main advantage for this material is that it can judge blur also on extreme
 close-ups and close-ups and on large, unstructured skin surfaces, where edge-based measurements have little to work
-with. The prompts were shaped by testing them on many images: simple, short, closed (yes / no) questions whose answers
+with. The prompts were first tested interactively in ComfyUI with several models and weights, and then
+shaped further by testing them on many images: simple, short, closed (yes / no) questions whose answers
 are easy to parse. Like every such model, it is prompt-sensitive, which was also seen during the processing.
 
 **Design of the three questions.** The questions were built on purpose so that contradictory, uncertain labels can be
@@ -163,6 +164,10 @@ combinations in which the answers contradict each other mark the uncertain cases
 
 The wording is the threshold. In a pilot on 156 frames, Q1 called 24% blurred, Q2 32% and Q3 72%: Q3 is a much stricter
 version of Q2 that differs by one word.
+
+**Consistency of labels and measurements.** Every frame used here was labelled with the final frozen teacher and
+measured with the final measurement; earlier labels and measurements were redone, so the labels and measured values of
+all frames are directly comparable.
 
 **Identity of the teacher.** The teacher is a byte-identical frozen copy (code, prompt, generation settings, weights),
 identified by hashes. Before a video is labelled, three control images with recorded replies are asked again; any
