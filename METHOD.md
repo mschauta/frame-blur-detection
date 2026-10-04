@@ -166,7 +166,7 @@ The wording is the threshold. In a pilot on 156 frames, Q1 called 24% blurred, Q
 version of Q2 that differs by one word.
 
 **Consistency of labels and measurements.** Every frame used here was labelled with the same frozen teacher and
-measured with the same method; earlier labels and measurements were redone, so the labels and measured values of all
+measured with the same method; the earlier labelling and measurements were carried out again, so the labels and measured values of all
 frames are directly comparable.
 
 **Identity of the teacher.** The teacher is a byte-identical frozen copy (code, prompt, generation settings, weights),
