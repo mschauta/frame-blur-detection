@@ -70,7 +70,11 @@ light background. A per-video mask marks its area.
   On the unmasked samples it appears whole or, on a light background, only partially; the model has to learn that this
   sharp overlay does not make a blurred frame sharp. Masked pixels never contribute to the decision (Section 7).
 
-**Measurement** (an independent, non-learned signal, used for ranking and as a cross-check, never as the label):
+**Measurement** (an independent, non-learned signal, used for ranking and as a cross-check, never as the label).
+The measured values, including single-image sharpness measures such as the Laplacian variance, were used only to
+measure, select and filter the frames. They were never used in training: they are neither labels nor model input. The
+model sees only the RGB-mesh `m09` edge fingerprint with p99 normalisation (Section 7), or, in the comparison runs, the
+RGB or grayscale image. The measurement consists of:
 
 - *camera motion*: the global displacement between neighbouring frames, estimated per 256 px tile and taking the
   median of the tiles (at least 4 tiles with enough contrast), so a hand crossing the picture cannot drag it;
