@@ -266,10 +266,15 @@ In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows
 | `weights/rgb_ep099.pt` | RGB image | 99 (last) | 0.885 / 0.0200 / 0.0041 | 0.952 |
 | `weights/gray_ep099.pt` | grayscale image | 99 (last) | 0.281 / 0.0135 / 0.0028 | 0.942 |
 | `weights/p99_ep099.pt` | edge fingerprint | 99 (last) | 0.889 / 0.0323 / 0.0053 | 0.949 |
+| `weights/rgb_ep073.pt` | RGB image | 73 | 0.965 / 0.1078 / 0.0149 | 0.954 |
+| `weights/gray_ep058.pt` | grayscale image | 58 | 0.112 / 0.0321 / 0.0064 | 0.947 |
+| `weights/p99_ep053.pt` | edge fingerprint | 53 | 0.570 / 0.1320 / 0.0491 | 0.951 |
 
 ConvNeXt-Small (ImageNet-pretrained) to stride 16, about 34 M parameters; each file holds the state dict and its metadata
-(input type, epoch, thresholds). The last epoch is the main result; further checkpoints selected from the cross-test
-will be added. The files are stored with Git LFS (`git lfs install` before cloning). The weights were trained on
+(input type, epoch, thresholds). The last epoch is the main result. The three further checkpoints (RGB epoch 73, grayscale epoch 58,
+fingerprint epoch 53) were chosen on the external test sets as the stricter alternatives: on the GoPro pairs and the
+demo frames they catch more blur than epoch 99, at the cost of keeping fewer sharp photos. Because they were chosen on
+these sets, the sets are selection data for them; the held-out test split is reported separately. The files are stored with Git LFS (`git lfs install` before cloning). The weights were trained on
 non-public material (METHOD §12).
 
 ## Data availability
