@@ -138,8 +138,81 @@ are almost entirely contained in those of the other two.*
 largest number of blurred images that the other two miss.*
 
 The same diagrams for the first epochs (0–5), when the models are still close to their pretrained weights, are in
-[figures/venn](figures/venn). Results of the cross-test, in which every model is given the finished input of the
-other models, will be added.
+[figures/venn](figures/venn). ### Cross-test: every model on the other models' input
+
+Each model is given the finished input of the other models, its own input processing bypassed and nothing converted
+(channels are only copied or selected to fit the first layer; the edge-fingerprint model, whose first layer takes one
+image channel, gets the grayscale input as is and the RGB input one colour channel at a time). Same test material,
+same operating points. Epoch 99, operating point 95%:
+
+| model ← input | demo photos AUC | sharp photos kept | 16 px caught | demo frames AUC (vs teacher) | GoPro AUC native / H.264 |
+|---|---|---|---|---|---|
+| RGB ← own | 0.999 | 89.9% | 99.9% | 0.810 | 0.968 / 0.945 |
+| RGB ← grayscale | 1.000 | 69.4% | 100% | 0.899 | 0.980 / 0.976 |
+| RGB ← fingerprint | 0.741 | 97.4% | 8.0% | 0.575 | 0.534 / 0.840 |
+| grayscale ← own | 1.000 | 89.1% | 100% | 0.718 | 0.978 / 0.929 |
+| grayscale ← RGB | 1.000 | 90.7% | 100% | 0.692 | 0.977 / 0.922 |
+| grayscale ← fingerprint | 0.732 | 48.3% | 81.3% | 0.798 | 0.555 / 0.845 |
+| fingerprint ← own | 0.999 | 95.2% | 100% | 0.675 | 0.931 / 0.912 |
+| fingerprint ← grayscale | 0.699 | 0.9% | 99.9% | 0.576 | 0.763 / 0.767 |
+| fingerprint ← R / G / B channel | 0.65–0.72 | 0.5–1.4% | 99.8–100% | 0.46–0.71 | 0.74–0.75 |
+
+Observations:
+- **RGB and grayscale are interchangeable.** The grayscale model decides on the RGB input practically as on its own;
+  the RGB model also sees the blur in the grayscale image (it keeps fewer sharp photos, but separates the demo frames
+  and the GoPro pairs even better). Colour does not carry decisive information; the two image models rely on features
+  present in both.
+- **No transfer between the fingerprint and the image, in either direction.** The image models call the fingerprint
+  almost always sharp; the fingerprint model calls the full image almost always blurred. The two families have learned
+  different features: the image models rely on something the residual does not contain, and the fingerprint model on
+  something only the residual contains.
+- **Early epochs differ.** After the first epoch the fingerprint model still decides well on the grayscale image (demo
+  photos AUC 0.931, GoPro native 0.940), while its first layer and trunk are still close to the ImageNet weights; by
+  epoch 5 this is gone. The fingerprint model moves to the residual early in training.
+- Consistent with this, the fingerprint model depends less on the general look of an image: on native and H.264 GoPro
+  images it keeps 97% and 99.8% of the sharp ones, whereas the image models shift native images towards blurred during
+  training (RGB: 98.7% kept after epoch 0, 64.2% after epoch 99). The price is that a blur made of sharp copies (the
+  GoPro averaging) misleads it more: it catches 73% of the native GoPro blur, the RGB model 97%.
+
+In the three-set diagrams below all three models are given the same input; the circles are the models.
+
+<details><summary>Given the RGB image (fingerprint model: green channel): three-set diagrams (epoch 99)</summary>
+
+![Demo photos, cross-test, Given the RGB image (fingerprint model: green channel)](figures/venn_crosstest/venn_ladder_ep099_given_rgb.svg)
+
+![Demo frames, cross-test, Given the RGB image (fingerprint model: green channel)](figures/venn_crosstest/venn_demo_frames_ep099_given_rgb.svg)
+
+![GoPro, native, cross-test, Given the RGB image (fingerprint model: green channel)](figures/venn_crosstest/venn_gopro_native_ep099_given_rgb.svg)
+
+![GoPro, H.264, cross-test, Given the RGB image (fingerprint model: green channel)](figures/venn_crosstest/venn_gopro_h264_ep099_given_rgb.svg)
+
+</details>
+
+<details><summary>Given the grayscale image: three-set diagrams (epoch 99)</summary>
+
+![Demo photos, cross-test, Given the grayscale image](figures/venn_crosstest/venn_ladder_ep099_given_gray.svg)
+
+![Demo frames, cross-test, Given the grayscale image](figures/venn_crosstest/venn_demo_frames_ep099_given_gray.svg)
+
+![GoPro, native, cross-test, Given the grayscale image](figures/venn_crosstest/venn_gopro_native_ep099_given_gray.svg)
+
+![GoPro, H.264, cross-test, Given the grayscale image](figures/venn_crosstest/venn_gopro_h264_ep099_given_gray.svg)
+
+</details>
+
+<details><summary>Given the edge fingerprint: three-set diagrams (epoch 99)</summary>
+
+![Demo photos, cross-test, Given the edge fingerprint](figures/venn_crosstest/venn_ladder_ep099_given_p99.svg)
+
+![Demo frames, cross-test, Given the edge fingerprint](figures/venn_crosstest/venn_demo_frames_ep099_given_p99.svg)
+
+![GoPro, native, cross-test, Given the edge fingerprint](figures/venn_crosstest/venn_gopro_native_ep099_given_p99.svg)
+
+![GoPro, H.264, cross-test, Given the edge fingerprint](figures/venn_crosstest/venn_gopro_h264_ep099_given_p99.svg)
+
+</details>
+
+The diagrams of the first epochs (0–5) are in [figures/venn_crosstest](figures/venn_crosstest).
 
 ## Demo: sort images into sharp / blur
 

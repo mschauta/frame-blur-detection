@@ -687,6 +687,10 @@ the model can learn about unseen videos.
   None of the models reaches 100% on its own training frames. RGB learns its training images fastest; the edge
   fingerprint starts lowest but reaches the highest training level of the two colourless inputs; grayscale has the
   smallest gap early on but the lowest training level at the end.
+- **Cross-test.** Every model is also given the finished input of the other two models, its own input processing
+  bypassed and nothing converted (channels only copied or selected to fit the first layer), on the same test material
+  and at its own operating points. This separates what a model has learned from what its input contains. Results and
+  three-set diagrams: README, "Cross-test".
 - The validation curve oscillates with the data cycles (Section 8); single epochs are not compared, but averages over
   blur passes.
 
