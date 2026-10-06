@@ -100,7 +100,14 @@ its validation split. Nothing is tuned on the test material.
 |---|---|---|
 | demo photos | 1,000 photos of the [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (CC0), each with simulated camera blur of L = 0, 0.5 … 6 and 16 px through the coding chain of METHOD §6 | exact injected blur length: 0–3 px sharp, 16 px blurred (4–6 px not counted) |
 | demo frames | 1,000 raw camera frames of *Tears of Steel* ((CC) Blender Foundation, mango.blender.org, CC BY 3.0), 1080p, one H.264 frame | the teacher's code: `sss` sharp, `bbb` / `bsb` blurred, other codes left out. A reference, not ground truth |
-| GoPro pairs | 1,029 sharp / blurred pairs of the GoPro deblurring dataset (Nah et al., CVPR 2017), native and through one H.264 frame (CRF 23) | the pair: the blurred image is an average of consecutive sharp frames, i.e. synthetic |
+| GoPro pairs | 1,029 sharp / blurred pairs of the GoPro deblurring dataset (Nah et al., CVPR 2017), native and through one H.264 frame (CRF 23) | the pair; the blur is synthetic (see below) |
+
+**How the GoPro blur was made, and why it is new to the detectors.** According to the original paper (Nah, Kim and Lee,
+CVPR 2017), the GoPro images were recorded at 240 frames per second; a blurred image is the average of 7 to 13
+consecutive frames after linearising the gamma, and its sharp counterpart is one of these frames. Such a blur is a sum of
+discrete copies: on one pair (a car's tail light) we counted 7 edge copies about 6.3 px apart. The detectors never saw
+blur made this way: the synthetic blur of their training photos is a continuous motion of 0–3 or 16–30 px (METHOD §6),
+and the blur of their training frames is native. The GoPro pairs therefore test a blur type outside the training data.
 
 **How to read the three-set diagrams.** Each panel shows the images of one reference class at one operating point. The
 three circles hold the images that the RGB, grayscale and edge-fingerprint model (epoch 99) call *blurred*; the numbers
