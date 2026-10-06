@@ -104,7 +104,7 @@ its validation split. Nothing is tuned on the test material.
 
 **How the GoPro blur was made, and why it is new to the detectors.** According to the original paper (Nah, Kim and Lee,
 CVPR 2017), the GoPro images were recorded at 240 frames per second; a blurred image is the average of 7 to 13
-consecutive frames after linearising the gamma, and its sharp counterpart is one of these frames. Such a blur is a sum of
+consecutive frames after linearising the gamma, and its sharp counterpart is the middle frame among those averaged. Such a blur is a sum of
 discrete copies: on one pair (a car's tail light) we counted 7 edge copies about 6.3 px apart. The detectors never saw
 blur made this way: the synthetic blur of their training photos is a continuous motion of 0–3 or 16–30 px (METHOD §6),
 and the blur of their training frames is native. The GoPro pairs therefore test a blur type outside the training data.
