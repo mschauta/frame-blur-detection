@@ -91,6 +91,49 @@ On the training frames every input keeps improving to the end (frame AUC 0.993�
 unseen videos the curves flatten after the third pass; the gap grows to 19–20 points. None of the models reaches 100% on
 its own training frames.
 
+## Tests on material outside the training data
+
+Every model is evaluated at its own operating points: the thresholds that catch 90, 95 or 98% of the blurred frames of
+its validation split. Nothing is tuned on the test material.
+
+| test set | what it is | reference |
+|---|---|---|
+| demo photos | 1,000 photos of the [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (CC0), each with simulated camera blur of L = 0, 0.5 … 6 and 16 px through the coding chain of METHOD §6 | exact injected blur length: 0–3 px sharp, 16 px blurred (4–6 px not counted) |
+| demo frames | 1,000 raw camera frames of *Tears of Steel* ((CC) Blender Foundation, mango.blender.org, CC BY 3.0), 1080p, one H.264 frame | the teacher's code: `sss` sharp, `bbb` / `bsb` blurred, other codes left out. A reference, not ground truth |
+| GoPro pairs | 1,029 sharp / blurred pairs of the GoPro deblurring dataset (Nah et al., CVPR 2017), native and through one H.264 frame (CRF 23) | the pair: the blurred image is an average of consecutive sharp frames, i.e. synthetic |
+
+**How to read the three-set diagrams.** Each panel shows the images of one reference class at one operating point. The
+three circles hold the images that the RGB, grayscale and edge-fingerprint model (epoch 99) call *blurred*; the numbers
+are image counts per region, and the number outside the circles counts the images all three call *sharp*. In the
+upper row (reference sharp) everything inside the circles is a false alarm; in the lower row (reference blurred)
+everything inside is caught and the number outside is missed by all three models. The diagrams show not only how many
+errors a model makes, but whether the models make the same ones.
+
+![Three-set diagram, demo photos](figures/venn/venn_ladder_ep099.svg)
+
+*Demo photos (exact injected blur length). At every operating point all 1,000 photos with 16 px blur are caught by all
+three models. On the sharp side (7,000 images, 0–3 px) the false alarms are mostly different for each model; only a small
+part is common to all three.*
+
+![Three-set diagram, demo frames](figures/venn/venn_demo_frames_ep099.svg)
+
+*Demo frames, measured against the teacher's code (agreement, not accuracy). A large common core of caught frames, and a
+group of frames the teacher calls blurred that all three models call sharp; the decisions of the edge-fingerprint model
+are almost entirely contained in those of the other two.*
+
+![Three-set diagram, GoPro native](figures/venn/venn_gopro_native_ep099.svg)
+
+*GoPro pairs, native.*
+
+![Three-set diagram, GoPro through H.264](figures/venn/venn_gopro_h264_ep099.svg)
+
+*GoPro pairs through H.264. After coding, weak blur is missed more often (by all three models); the RGB model catches the
+largest number of blurred images that the other two miss.*
+
+The same diagrams for the first epochs (0–5), when the models are still close to their pretrained weights, are in
+[figures/venn](figures/venn). Results of the cross-test, in which every model is given the finished input of the
+other models, will be added.
+
 ## Demo: sort images into sharp / blur
 
 ```
