@@ -1,0 +1,108 @@
+"""The blur detector and its three input types, for inference.
+
+A ConvNeXt-Small trunk up to stride 16, a 1x1 head that gives one logit per 16 px cell, and a masked log-sum-exp over
+the cells with a learnable sharpness r: the image is "blurred" if blur appears anywhere (METHOD.md, Section 8).
+
+Inputs (METHOD.md, Section 7), always followed by a validity-mask channel:
+  rgb   the image, ImageNet-normalised
+  gray  the linear-light luminance, sRGB-encoded, copied to 3 channels, ImageNet-normalised
+  p99   the edge fingerprint d = Y - K * Y (K = [3 10 3; 10 92 10; 3 10 3] / 144, Y linear luminance), divided by the
+        99.5th percentile of |d| (floor 1e-3) and companded as sign * sqrt(|.|)
+"""
+
+from __future__ import annotations
+
+import math
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+CELL = 16
+KERNEL = torch.tensor([[3.0, 10.0, 3.0], [10.0, 92.0, 10.0], [3.0, 10.0, 3.0]], dtype=torch.float64) / 144.0
+LUMA = (0.2126729, 0.7151522, 0.0721750)
+SCALE_Q, SCALE_FLOOR = 0.995, 1e-3
+IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+
+
+def srgb_to_linear(x: torch.Tensor) -> torch.Tensor:
+    return torch.where(x <= 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4)
+
+
+def luminance(lin: torch.Tensor) -> torch.Tensor:
+    return (lin * lin.new_tensor(LUMA).view(1, 3, 1, 1)).sum(1, keepdim=True)
+
+
+def fingerprint(rgb8: torch.Tensor) -> torch.Tensor:
+    """(B, 3, H, W) uint8 sRGB -> (B, 1, H, W) d = Y - K * Y, edges replicated."""
+    y = luminance(srgb_to_linear(rgb8.float() / 255.0))
+    k = KERNEL.to(y.device, y.dtype).view(1, 1, 3, 3)
+    return y - F.conv2d(F.pad(y, (1, 1, 1, 1), mode="replicate"), k)
+
+
+def _scale(d: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
+    a, v = d.abs()[..., ::2, ::2], valid[..., ::2, ::2] > 0
+    out = [torch.quantile(a[i][v[i]].float(), SCALE_Q) if v[i].any() else a.new_tensor(0.0) for i in range(a.shape[0])]
+    return torch.stack(out).clamp(min=SCALE_FLOOR).view(-1, 1, 1, 1).to(d.dtype)
+
+
+def _imagenet(x: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    mean = torch.tensor(IMAGENET_MEAN, device=x.device).view(1, 3, 1, 1)
+    std = torch.tensor(IMAGENET_STD, device=x.device).view(1, 3, 1, 1)
+    return torch.cat(((x - mean) / std * v, v), 1)
+
+
+def model_input(rgb8: torch.Tensor, valid: torch.Tensor | None, kind: str) -> torch.Tensor:
+    """(B, 3, H, W) uint8 + optional (B, 1, H, W) {0, 1} mask -> the model input of type `kind`."""
+    v = torch.ones_like(rgb8[:, :1], dtype=torch.float32) if valid is None else valid.float()
+    if kind == "rgb":
+        return _imagenet(rgb8.float() / 255.0, v)
+    if kind == "gray":
+        y = luminance(srgb_to_linear(rgb8.float() / 255.0)).clamp(0, 1)
+        y = torch.where(y <= 0.0031308, y * 12.92, 1.055 * y.clamp(min=1e-12) ** (1 / 2.4) - 0.055)
+        return _imagenet(y.expand(-1, 3, -1, -1), v)
+    if kind == "p99":
+        d = fingerprint(rgb8)
+        dn = d / _scale(d, v)
+        return torch.cat((torch.sign(dn) * torch.sqrt(dn.abs()) * v, v), 1)
+    raise ValueError(kind)
+
+
+class BlurDetector(nn.Module):
+    def __init__(self, kind: str):
+        super().__init__()
+        import torchvision.models as tvm
+        self.kind = kind
+        m = tvm.convnext_small(weights=None)
+        stem = m.features[0][0]
+        n_in = 2 if kind == "p99" else 4
+        m.features[0][0] = nn.Conv2d(n_in, stem.out_channels, kernel_size=4, stride=4)
+        self.trunk = nn.Sequential(*list(m.features.children())[:6])        # stride 16, 384 channels
+        self.head = nn.Sequential(nn.Conv2d(384, 128, 1), nn.GELU(), nn.Conv2d(128, 1, 1))
+        self._r = nn.Parameter(torch.tensor(0.0))
+
+    @property
+    def r(self) -> torch.Tensor:
+        return F.softplus(self._r) + 0.1
+
+    def forward(self, rgb8: torch.Tensor, valid: torch.Tensor | None = None) -> dict:
+        """rgb8 (B, 3, H, W) uint8 -> {"image": logit per image, "local": logit per 16 px cell}."""
+        H, W = rgb8.shape[-2:]
+        x = model_input(rgb8, valid, self.kind)
+        x = F.pad(x, (0, math.ceil(W / CELL) * CELL - W, 0, math.ceil(H / CELL) * CELL - H))
+        local = self.head(self.trunk(x)).float()
+        cell_valid = F.avg_pool2d(x[:, -1:], CELL, CELL) >= 0.5
+        r = self.r
+        l = torch.where(cell_valid, local * r, torch.full_like(local, -1e4))
+        n = cell_valid.flatten(1).sum(1).clamp(min=1)
+        image = (torch.logsumexp(l.flatten(1), 1) - torch.log(n.float())) / r
+        return {"image": image, "local": local}
+
+
+def load_detector(path, device="cpu") -> tuple[BlurDetector, dict]:
+    """A published weight file -> (model in eval mode, its metadata incl. the decision thresholds)."""
+    ck = torch.load(path, map_location="cpu", weights_only=True)
+    meta = ck["meta"]
+    model = BlurDetector(meta["input"])
+    model.load_state_dict(ck["state_dict"])
+    return model.to(device).eval(), meta
