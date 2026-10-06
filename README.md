@@ -1,9 +1,12 @@
 # Frame Blur Detection
 
-*Draft. The experiments are still running; numbers will be updated, and code and trained weights will be added.*
+*Draft. The experiments are still running; numbers will be updated. The inference code and weights are included; the
+training code will follow.*
 
-A **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames degraded by
-motion blur, independently of the film, the shot or the recording. It is the first stage of a longer pipeline
+The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
+degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The results so far
+come from a narrow, people-centred material (37 labelled videos) and its validation split; universality is the aim, not
+yet a demonstrated property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
 
 The full description of the material, the labelling, the training and the evaluation is in [METHOD.md](METHOD.md).
@@ -28,7 +31,7 @@ This page summarises the approach and the results.
 |---|---|---|
 | frames | real, native motion blur from handheld-camera videos; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions, only unanimous answers kept | METHOD §3–5 |
 | label noise | an independent motion and sharpness measurement ranks frames within a shot and keeps only the best sharp frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
-| photos | exact labels at the two extremes: 0–3 px camera blur = sharp, 16–30 px = blurred, the band between is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to match the noise floor of real frames | METHOD §6 |
+| photos | an exact injected blur length at the two extremes: 0–3 px camera blur = sharp, 16–30 px = blurred, the band between is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to match the noise floor of real frames | METHOD §6 |
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
 | model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling ("blurred if blur appears anywhere") | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
@@ -37,7 +40,7 @@ This page summarises the approach and the results.
 
 Validation uses **videos never seen in training**, balanced per video (3,301 sharp and 3,301 blurred frames from 11
 video groups). The frame labels come from the teacher, so these figures measure **agreement with the teacher**, not
-correctness (METHOD §9). The *confident* subset contains only frames whose teacher label is confirmed by the
+correctness (METHOD §9). The *confident* subset contains only frames whose teacher label agrees with the
 measurement (533 sharp, 1,788 blurred).
 
 ![Validation metrics per epoch](figures/validation_curves.svg)
@@ -64,13 +67,13 @@ Last epoch (epoch 99):
 | grayscale | 0.942 | 83.1% / 70.0% / 52.1% | 0.993 |
 | edge fingerprint | 0.949 | 83.1% / 73.9% / 58.2% | 0.990 |
 
-On the held-out photos (exact labels, 2,000 sharp and 2,000 blurred) every run reaches an AUC of at least 0.999 at every
+On the held-out photos (exact injected blur length, 2,000 sharp and 2,000 blurred) every run reaches an AUC of at least 0.999 at every
 epoch: the two extremes are solved, the difficulty lies entirely in the real frames.
 
 **Reading.**
 - All three inputs converge to a similar level by the third pass over the blurred frames. RGB learns faster and ends a few
   points ahead at the strict operating points (about 2 points at 95%, 4–5 points at 98% in the last two passes).
-- On the confident frames, where the teacher label is confirmed by the measurement, the order changes: grayscale is
+- On the confident frames, where the teacher label agrees with the measurement, the order changes: grayscale is
   highest from the second pass on, and in the last pass all three lie within 0.004 of each other. Part of RGB's lead at 98% may therefore
   be agreement with the teacher, which also sees the RGB image.
 - The edge fingerprint, a lossy imprint from which the image cannot be reconstructed, alone carries enough information
@@ -92,14 +95,16 @@ its own training frames.
 
 ```
 pip install -r requirements.txt
-python classify.py --weights weights/p99_ep099.pt --input test_images --output sorted
+python classify.py --weights weights/p99_ep099.pt --input test_images/typical --output sorted
 ```
 
 Every image of `--input` is scored and copied to `sorted/sharp` or `sorted/blur`; `sorted/results.csv` lists the blur
-probability and the decision. `--recall 90 | 95 | 98` selects the decision threshold stored with the weights (the one
+score and the decision (the sigmoid output of the model; a score, not a calibrated probability). `--recall 90 | 95 | 98` selects the decision threshold stored with the weights (the one
 that catches that share of the blurred validation frames; higher = stricter), `--move` moves instead of copying. A GPU is
 used when available. The models were trained for 1080p video frames decoded from H.264 and stored as lossless PNG.
-In use, *blur* stands for "not usable" (METHOD §1).
+In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows the normal behaviour,
+`test_images/hard_cases` a deliberate stress test; their scores at all three operating points are listed in
+`test_images/README.md`.
 
 ## Weights
 

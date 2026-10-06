@@ -1,12 +1,13 @@
 """Sort images into sharp / blur with a published weight file.
 
-    python classify.py --weights weights/p99_ep099.pt --input test_images --output sorted
+    python classify.py --weights weights/p99_ep099.pt --input test_images/typical --output sorted
     python classify.py --weights weights/rgb_ep099.pt --input frames --output sorted --recall 98 --move
 
 Every image of --input (png, jpg, jpeg, bmp, tif, tiff, webp; not recursive) is scored and copied (or moved) to
 <output>/sharp or <output>/blur. The decision threshold is the one stored with the weights: it catches 90, 95 or 98%
 of the blurred frames of the validation split (--recall). A higher recall is stricter: fewer blurred frames pass as
-sharp, more sharp frames are rejected. <output>/results.csv lists every image with its blur probability and decision.
+sharp, more sharp frames are rejected. <output>/results.csv lists every image with its blur score (the model's sigmoid output, not a calibrated
+probability) and decision.
 
 The models were trained for video frames (1080p, decoded from H.264, stored losslessly as PNG); see METHOD.md.
 """
@@ -56,10 +57,10 @@ def main():
             p = float(torch.sigmoid(logit.float()))
             label = "blur" if p >= thr else "sharp"
             (shutil.move if a.move else shutil.copy2)(f, a.output / label / f.name)
-            rows.append({"file": f.name, "p_blurred": f"{p:.6f}", "decision": label})
-            print(f"[{i}/{len(files)}] {f.name}: {label} (p = {p:.4f})")
+            rows.append({"file": f.name, "blur_score": f"{p:.6f}", "decision": label})
+            print(f"[{i}/{len(files)}] {f.name}: {label} (score {p:.4f})")
     with open(a.output / "results.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, ["file", "p_blurred", "decision"])
+        w = csv.DictWriter(fh, ["file", "blur_score", "decision"])
         w.writeheader()
         w.writerows(rows)
     n_sharp = sum(r["decision"] == "sharp" for r in rows)

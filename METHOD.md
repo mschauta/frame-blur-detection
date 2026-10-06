@@ -31,10 +31,11 @@ never taught as acceptable.
 The cost of the two errors is **asymmetric**. A blurred frame accepted as sharp is the expensive error; rejecting some
 sharp frames is acceptable. All evaluation is built around this (Section 9).
 
-**Not a distillation of the teacher.** The detector is not trained to reproduce the VLM teacher's sharp / blurred
-decisions. The teacher's labels only help to sort the frames into the two classes: only `sss` (all three questions say
+**Not a distillation of the teacher's decisions.** The class labels of the real frames do come from the VLM teacher, but
+the detector is not trained to reproduce its sharp / blurred decisions: this is a filtered weak supervision with
+synthetic anchors. The teacher's labels only help to sort the frames into the two classes: only `sss` (all three questions say
 sharp) and `bbb` / `bsb` (Q1 sees blur) are used, the uncertain and the not-sharp-but-not-blurred combinations are left out, an independent measurement reduces the label
-noise on the sharp side, and the two extremes are defined without the teacher, by photos with an exact blur length (an
+noise on the sharp side, and the two extremes are defined without the teacher, by photos with an exact injected blur length (an
 unblurred photo is sharp even where the teacher says otherwise). Agreement with the teacher is therefore reported as
 agreement, not as accuracy (Section 9).
 
@@ -337,14 +338,14 @@ recorded. Every model ran in its own process, and the GPU memory was released be
 before the next one was loaded).
 
 **Test images.**
-- *Photos with exact labels:* 400 openly licensed images from the
+- *Photos with an exact injected blur length:* 400 openly licensed images from the
   [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (Hosu et al., 2024; CC0;
   a mix of photographs, edited images and renders, not people-centred). They are not training images: none of the
   detectors of this study has seen them. Each was given simulated camera blur of L = 0, 1, 2, 3, 4, 6 and 16 px through the
   video path of Section 6: 2,800 images. L ≤ 3 px counts as sharp, 16 px as blurred; 4 and 6 px are reported only.
 - *Frames:* 1,278 confident-sharp frames (up to three per shot, at least 0.5 s apart) and 2,239 confident-blurred
-  frames (one per shot) from the labelled videos, with the bounds of Section 9. Their reference is the 4B's own code
-  confirmed by the measurement, so the frames favour the 4B by construction: for the other sizes they show the
+  frames (one per shot) from the labelled videos, with the bounds of Section 9. Their reference is the 4B's own code,
+  with which the measurement agrees, so the frames favour the 4B by construction: for the other sizes they show the
   deviation from the 4B, not correctness.
 - *Shot size:* no model sized the shots without errors (pose and segmentation models merge or split people who are
   entangled; the VLM mixes neighbouring sizes). The frames are therefore split into two groups only, *close* (close-up
@@ -392,9 +393,9 @@ The memory peak is the device total during the run and includes the allocator's 
 - *4B and 9B both follow the blur length:* at 16 px only 5–6% remain `sss` and both call 81% blurred.
   The 9B is more lenient on the sharp side: it calls 91.0% of the unblurred photos `sss`, the 4B 76.5%. By the
   definition of Section 6 an unblurred photo is sharp, so on these images the 4B errs more often on the sharp side.
-- *On frames the two differ mainly on the blurred side.* The 9B calls 15.9% of the measurement-confirmed blurred frames
+- *On frames the two differ mainly on the blurred side.* The 9B calls 15.9% of the blurred frames on which the measurement agrees
   sharp, 13.4% in close shots and 30.6% in shots that are not close. Which of the two is right cannot be decided on these
-  frames: there is no exact reference, the measurement only confirms the extremes. This disagreement is the label noise
+  frames: there is no exact reference, the measurement only agrees on the extremes. This disagreement is the label noise
   the detector is trained through.
 - *Close shots are where the VLM matters.* The measurement-based filter does not work reliably on close-ups and extreme
   close-ups; the two usable sizes agree more there (76.0% of the blurred frames) than on shots that are not close (50.6%).
@@ -455,7 +456,7 @@ training frames). Consecutive blurred frames are permutations of one motion, 33 
 
 ## 6. Photos: simulated camera blur through the video path
 
-The photos supply the two **extremes** with exact labels; the frames supply the ambiguous middle.
+The photos supply the two **extremes** with an exact injected blur length; the frames supply the ambiguous middle.
 
 **What the photos stand for, and why they are blurred.** An unblurred photo (L = 0) is the ideotype of an absolutely
 sharp frame; 1–3 px is its realistic abstraction, the tolerance of a sharp frame (Section 6.1). Both are sharp by
@@ -471,7 +472,9 @@ into fine parallel streaks along the motion direction, visible in the fingerprin
 conspicuous. A model trained on it would learn this hatching instead of the blur of real frames; this is a main reason
 why every photo is re-encoded (after the blur) before training. Measured on the flat parts
 of the images, the noise floor of the frames is matched only after H.264 encoding (CRF 23 closest); JPEG does not match
-(too strong an 8 px block grid). So every photo sample goes through the same chain as a video frame:
+(too strong an 8 px block grid). So every photo sample goes through the same coding chain as a video frame, with one restriction: a single encoded frame
+is intra-coded, so the temporal artefacts of the P / B frames of a real group of pictures are not reproduced; the chain
+matches the noise floor, not every artefact of a video:
 
 > original → flip / 90° rotation → camera motion blur in linear light → H.264 (x264 High, 4:2:0, BT.709, one frame) → decoded
 
@@ -538,10 +541,11 @@ borders (verified numerically to 2·10⁻¹⁵). The fingerprint is the part of 
 the edge and thin-feature contrast that the uncalibrated mesh smooths away and that area calibration restores. `d` keeps only the finest edge layer: a doubled contour or
 parallel bands along the motion direction appear as paired positive / negative lines.
 
-**Why the sign matters.** At an edge, `d` is negative on the darker side and positive on the brighter side. Which of the
-two lines of a pair is the outer and which the inner one is therefore set by the brightness of the subject against the
-background and by the direction of the motion; their spacing follows the blur length and their orientation the motion
-direction. The signed pair thus encodes geometry that a gradient magnitude or a spectrum loses, and it is a strong cue.
+**Why the sign matters.** At an edge, `d` is negative on the darker side and positive on the brighter side. The sign of
+a line therefore shows the polarity of the edge (which side is brighter); the spacing of a pair follows the blur length,
+and its axis the orientation of the motion. The temporal direction of the motion (from A to B or from B to A) cannot be
+told: a uniform exposure kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
+geometry that a gradient magnitude or a spectrum loses, and it is a strong cue.
 
 **What is seen in the fingerprint as blur grows** (visual observation): first the edges thicken. Beyond that the picture
 varies from one motion blur to another, depending on how cleanly the edge doubles: a clean displacement between two
@@ -550,9 +554,14 @@ range than this clean case (uneven speed, curved paths, partial and repeated mot
 stored. Per image it is divided by its 99.5th percentile magnitude (floor 10⁻³) and companded as `sign · √|·|`, so only
 the shape of the pattern counts, not the overall sharpness level of the recording.
 
-**RGB.** As an alternative, the plain ImageNet-normalised image.
+**RGB.** The plain image, ImageNet-normalised; the pretrained first layer is kept unchanged.
 
-In both cases a fourth (or second) channel carries the validity mask; masked pixels are set to zero.
+**Grayscale.** The image without colour: the same linear-light luminance `Y` the fingerprint is made from (full frequency
+band), sRGB-encoded, copied to three channels so that the pretrained first layer is kept, and ImageNet-normalised.
+Fingerprint vs grayscale differ only in the frequency band; grayscale vs RGB only in colour.
+
+In every case a last channel carries the validity mask; masked pixels are set to zero. For the fingerprint the first
+layer is adapted: its single fingerprint channel starts from the sum of the pretrained RGB filters.
 
 ### 7.1 Relation to known approaches
 
@@ -638,19 +647,22 @@ the model can learn about unseen videos.
 
 ## 9. Evaluation
 
-- **Photo level (exact labels):** AUC on held-out photos, 2,000 sharp and 2,000 blurred, one fixed variant each.
+- **Photo level (exact injected blur length):** AUC on held-out photos, 2,000 sharp and 2,000 blurred, one fixed variant each.
 - **Frame level (teacher labels):** AUC, and the **share of sharp frames kept at a threshold that catches 90%, 95% or 98% of
   the blurred frames**. The 98% figure is the strict operating point of the asymmetric cost.
 - These figures measure **agreement with the teacher**, not strictness: the teacher's `sss` frames include overlooked
   blur, which a stricter model rejects rightly.
-- **A disagreement with the teacher is not an error.** It only means that the detector has learned different principles.
+- **A disagreement with the teacher is not by itself an error of the detector.** It can be a justified stricter (or more
+  tolerant) decision of a detector that has learned different principles, an error of the teacher, or an error of the
+  detector; without ground truth, which of these it is can only be decided case by case.
   The teacher is a vision-language model that analyses the picture and weighs its composition; the ConvNeXt detector
   learns patterns, and being pretrained on natural images, it is more at home with an RGB or grayscale picture than with
   the edge fingerprint. The teacher's answers (Q1–Q3) act on the dataset only indirectly, through the strongly filtered
   selection of the training frames (Sections 4–5). In the tests the teacher's label is a reference, not ground truth:
   it gives a direction and points to contradictions. The disagreements are then looked at by eye, as a screening test,
   to see which side is closer to reality.
-- **Confident subsets:** frames whose teacher label is confirmed by the measurement (sharp: `sss`, rank ≤ 0.2, regional
+- **Measurement-agreement subsets** ("confident" frames below): frames whose teacher label agrees with a second,
+  correlated criterion, the measurement; the measurement does not prove the label (sharp: `sss`, rank ≤ 0.2, regional
   motion ≤ 4 px, camera ≤ 1.5 px; blurred: `bbb`/`bsb`, rank ≥ 0.8, regional motion ≥ 10 px). 533 sharp and 1,788 blurred
   validation frames. Reported: AUC on them, and the confident-sharp share kept when at most 1% of the confident-blurred
   frames pass.
@@ -770,6 +782,7 @@ before this fix.
 ## 12. Data availability
 
 The dataset is **not published**: it was built from copyrighted videos and photo albums. No images, frames, crops or
-derived images (edge images, heat maps) are published. Code, configurations, selection and labelling rules, run
-provenance, metrics and trained weights are. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
+derived images (edge images, heat maps) are published. Published are the method, metrics, run provenance, the inference
+code and trained weights; the training, labelling, selection and evaluation code and the configurations will be published
+after they have been cleaned of internal references. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
 the changes made are listed next to them.
