@@ -28,11 +28,11 @@ This page summarises the approach and the results.
 
 | part | what | details |
 |---|---|---|
-| frames | real, native motion blur from handheld-camera videos; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions, only unanimous answers kept | METHOD §3–5 |
+| frames | real, native motion blur from handheld-camera videos; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions; sharp = `sss` (all three agree), blurred = `bbb` / `bsb` (Q1 sees blur), the other codes left out | METHOD §3–5 |
 | label noise | an independent motion and sharpness measurement ranks frames within a shot and keeps only the best sharp frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
 | photos | an exact injected blur length at the two extremes: 0–3 px camera blur = sharp, 16–30 px = blurred, the band between is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to match the noise floor of real frames | METHOD §6 |
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
-| model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling ("blurred if blur appears anywhere") | METHOD §8 |
+| model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
 
 ## Results (validation, 100 epochs)
@@ -75,8 +75,9 @@ epoch: the two extremes are solved, the difficulty lies entirely in the real fra
 - On the confident frames, where the teacher label agrees with the measurement, the order changes: grayscale is
   highest from the second pass on, and in the last pass all three lie within 0.004 of each other. Part of RGB's lead at 98% may therefore
   be agreement with the teacher, which also sees the RGB image.
-- The edge fingerprint, a lossy imprint from which the image cannot be reconstructed, alone carries enough information
-  to recognise the blur. The training results show that the information is present in all three inputs, not which
+- The edge fingerprint alone carries enough information to recognise the blur. (It is not a one-way imprint: the
+  operator removes only the constant component, so the luminance is recoverable in principle up to its mean, though
+  ill-conditioned; the per-image normalisation removes the global scale, and colour is lost.) The training results show that the information is present in all three inputs, not which
   property carries it or whether the models use the same one; this is the subject of the cross-test below.
 
 ### Training frames against unseen videos
@@ -106,7 +107,10 @@ CVPR 2017), the GoPro images were recorded at 240 frames per second; a blurred i
 consecutive frames after linearising the gamma, and its sharp counterpart is the middle frame among those averaged. Such a blur is a sum of
 discrete copies: on one pair (a car's tail light) we counted 7 edge copies about 6.3 px apart. The detectors never saw
 blur made this way: the synthetic blur of their training photos is a continuous motion of 0–3 or 16–30 px (METHOD §6),
-and the blur of their training frames is native. The GoPro pairs therefore test a blur type outside the training data.
+and the blur of their training frames is native. The GoPro pairs therefore test blur produced in a way that is absent from the training data, a sampled
+approximation of the exposure integral, rather than a new physical kind of blur. The copy used here has 1,029 pairs
+(the original paper lists 1,111 test pairs); it was obtained from a public mirror, and which subset it is was not
+established.
 
 **How to read the three-set diagrams.** Each panel shows the images of one reference class at one operating point. The
 three circles hold the images that the RGB, grayscale and edge-fingerprint model (epoch 99) call *blurred*; the numbers
@@ -115,10 +119,33 @@ upper row (reference sharp) everything inside the circles is a false alarm; in t
 everything inside is caught and the number outside is missed by all three models. The diagrams show not only how many
 errors a model makes, but whether the models make the same ones.
 
+The percentages under the diagrams ("caught", "false alarm") count images called blurred by **at least one** of the
+three models.
+
+**Per model** (epoch 99, operating point 95%; sharp kept / blurred caught):
+
+| material | RGB | grayscale | edge fingerprint |
+|---|---|---|---|
+| validation frames (teacher labels) | 74.9% / 95% | 70.0% / 95% | 73.9% / 95% |
+| demo photos, 0–3 px vs 16 px | 89.9% / 99.9% | 89.1% / 100% | 95.2% / 100% |
+| demo frames (teacher reference) | 86.1% / 62.7% | 86.3% / 51.6% | 99.1% / 39.3% |
+| GoPro, native | 64.2% / 96.7% | 66.8% / 98.0% | 97.3% / 73.3% |
+| GoPro, H.264 | 99.7% / 79.9% | 99.0% / 63.9% | 99.8% / 59.3% |
+
+The 95% operating point is a calibration target on the validation frames, not a recall guarantee on other material:
+on the external sets the thresholds shift the balance between kept and caught images, in different directions for the
+three inputs. The demo-frame row measures agreement with the teacher.
+
+**Limits of these results.** One training run per input (one seed); the differences of a few points between the inputs
+are not yet backed by confidence intervals (video-level bootstrap is planned). The held-out test split of the labelled
+videos (7 video groups) has not been evaluated yet; it will be, once for the chosen checkpoints. Checkpoints chosen on
+the external sets above turn them into selection data, so final claims about such a checkpoint need material that was
+not used to choose it.
+
 ![Three-set diagram, demo photos](figures/venn/venn_ladder_ep099.svg)
 
-*Demo photos (exact injected blur length). At every operating point all 1,000 photos with 16 px blur are caught by all
-three models. On the sharp side (7,000 images, 0–3 px) the false alarms are mostly different for each model; only a small
+*Demo photos (exact injected blur length). At every operating point 999 of the 1,000 photos with 16 px blur are caught
+by all three models and the remaining one by the grayscale and fingerprint models. On the sharp side (7,000 images, 0–3 px) the false alarms are mostly different for each model; only a small
 part is common to all three.*
 
 ![Three-set diagram, demo frames](figures/venn/venn_demo_frames_ep099.svg)
@@ -161,10 +188,13 @@ Observations:
   the RGB model also sees the blur in the grayscale image (it keeps fewer sharp photos, but separates the demo frames
   and the GoPro pairs even better). Colour does not carry decisive information; the two image models rely on features
   present in both.
-- **No transfer between the fingerprint and the image, in either direction.** The image models call the fingerprint
-  almost always sharp; the fingerprint model calls the full image almost always blurred. The two families have learned
-  different features: the image models rely on something the residual does not contain, and the fingerprint model on
-  something only the residual contains.
+- **Little transfer between the fingerprint and the image.** The RGB model calls the fingerprint almost always sharp,
+  the fingerprint model calls the full image almost always blurred; the grayscale model transfers partly (on the
+  fingerprint it still catches 81% of the 16 px blur and agrees with the teacher on the demo frames better than on its
+  own input, but keeps only 48% of the sharp photos). The models are adapted to their training representation: a direct
+  swap changes both the ranking and the calibration. This does not show that the information a model uses is missing
+  from the other representation (the residual is a deterministic function of the image); the cause cannot be separated
+  in this test.
 - **Early epochs differ.** After the first epoch the fingerprint model still decides well on the grayscale image (demo
   photos AUC 0.931, GoPro native 0.940), while its first layer and trunk are still close to the ImageNet weights; by
   epoch 5 this is gone. The fingerprint model moves to the residual early in training.
@@ -223,7 +253,8 @@ python classify.py --weights weights/p99_ep099.pt --input test_images/typical --
 Every image of `--input` is scored and copied to `sorted/sharp` or `sorted/blur`; `sorted/results.csv` lists the blur
 score and the decision (the sigmoid output of the model; a score, not a calibrated probability). `--recall 90 | 95 | 98` selects the decision threshold stored with the weights (the one
 that catches that share of the blurred validation frames; higher = stricter), `--move` moves instead of copying. A GPU is
-used when available. The models were trained for 1080p video frames decoded from H.264 and stored as lossless PNG.
+used when available; on the CPU the network runs in float32, so scores can differ from the GPU (bfloat16) by about
+0.01–0.04. The models were trained for 1080p video frames decoded from H.264 and stored as lossless PNG.
 In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows the normal behaviour,
 `test_images/hard_cases` a deliberate stress test; their scores at all three operating points are listed in
 `test_images/README.md`.
@@ -244,8 +275,9 @@ non-public material (METHOD §12).
 ## Data availability
 
 The training data is **not published**: it was built from copyrighted videos and photographs. No images, frames, crops or
-derived images are published. The method, configurations, selection and labelling rules, run provenance, metrics and
-trained weights are (METHOD §12).
+derived images are published. Published are the method, the selection and labelling rules, metrics, the inference code
+and the trained weights; the training, labelling, selection and evaluation code, the configurations and the run
+provenance will follow (METHOD §12).
 
 ## Related work by the author
 

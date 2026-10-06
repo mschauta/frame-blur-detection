@@ -43,6 +43,8 @@ def main():
     files = sorted(p for p in a.input.iterdir() if p.is_file() and p.suffix.lower() in EXTS)
     for d in ("sharp", "blur"):
         (a.output / d).mkdir(parents=True, exist_ok=True)
+        if any((a.output / d).iterdir()):
+            raise SystemExit(f"{a.output / d} is not empty; use a new or empty output folder")
     print(f"{len(files)} images, model input: {meta['input_description']}, epoch {meta['epoch']}, "
           f"threshold {thr:.6f} (catches {a.recall}% of the blurred validation frames), device {a.device}")
     rows = []

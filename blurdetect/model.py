@@ -34,13 +34,22 @@ def luminance(lin: torch.Tensor) -> torch.Tensor:
 
 
 def fingerprint(rgb8: torch.Tensor) -> torch.Tensor:
-    """(B, 3, H, W) uint8 sRGB -> (B, 1, H, W) d = Y - K * Y, edges replicated."""
-    y = luminance(srgb_to_linear(rgb8.float() / 255.0))
-    k = KERNEL.to(y.device, y.dtype).view(1, 1, 3, 3)
-    return y - F.conv2d(F.pad(y, (1, 1, 1, 1), mode="replicate"), k)
+    """(B, 3, H, W) uint8 sRGB -> (B, 1, H, W) d = Y - K * Y, edges replicated.
+
+    The published models were trained with this convolution running under bfloat16 autocast on the GPU: its inputs, the
+    kernel and its output were rounded to bfloat16, while Y itself stayed float32. The rounding is reproduced here
+    explicitly, on any device and with or without autocast, so that the input matches the one the weights were trained
+    on. (In smooth regions this rounding is of the order of the fingerprint itself; a model trained on the exact
+    float32 fingerprint would need this function without the rounding.)"""
+    with torch.autocast(device_type=rgb8.device.type, enabled=False):
+        y = luminance(srgb_to_linear(rgb8.float() / 255.0))
+        k = KERNEL.to(y.device, torch.float32).to(torch.bfloat16).float().view(1, 1, 3, 3)
+        yb = F.pad(y, (1, 1, 1, 1), mode="replicate").to(torch.bfloat16).float()
+        return y - F.conv2d(yb, k).to(torch.bfloat16).float()
 
 
 def _scale(d: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
+    """99.5th percentile of |d| over the valid pixels of a fixed 2 x 2 sub-grid (every second row and column), floored."""
     a, v = d.abs()[..., ::2, ::2], valid[..., ::2, ::2] > 0
     out = [torch.quantile(a[i][v[i]].float(), SCALE_Q) if v[i].any() else a.new_tensor(0.0) for i in range(a.shape[0])]
     return torch.stack(out).clamp(min=SCALE_FLOOR).view(-1, 1, 1, 1).to(d.dtype)
@@ -94,7 +103,9 @@ class BlurDetector(nn.Module):
         cell_valid = F.avg_pool2d(x[:, -1:], CELL, CELL) >= 0.5
         r = self.r
         l = torch.where(cell_valid, local * r, torch.full_like(local, -1e4))
-        n = cell_valid.flatten(1).sum(1).clamp(min=1)
+        if not bool(cell_valid.flatten(1).any(1).all()):
+            raise ValueError("no valid 16 px cell in the image: too small or fully masked, cannot be judged")
+        n = cell_valid.flatten(1).sum(1)
         image = (torch.logsumexp(l.flatten(1), 1) - torch.log(n.float())) / r
         return {"image": image, "local": local}
 

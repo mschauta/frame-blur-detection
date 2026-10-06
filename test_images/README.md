@@ -45,8 +45,8 @@ What each hard case tests:
   question of the task definition, not of edge sharpness.
 - **soft picture with a defocused foreground**: not usable, but not motion blur either (`sbb`); only the fingerprint
   model flags it, through the defocused foreground (its cell map), not through the soft subject.
-- **sharp subject, defocused background**: intentional depth of field. The image decision is "blur if blur appears
-  anywhere" (METHOD §8), so a defocused background can turn the decision; whether that is wanted depends on the
+- **sharp subject, defocused background**: intentional depth of field. The image decision is a soft maximum over the cells
+  (METHOD §8), so a clearly defocused background region can turn the decision; whether that is wanted depends on the
   definition of usable.
 - **local motion blur**: a real miss of all three models: a small, dark, low-contrast moving region in an otherwise sharp
   shot. Why it is missed (size of the region, contrast, composition, the pooling) is not yet separated.

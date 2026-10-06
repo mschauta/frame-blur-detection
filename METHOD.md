@@ -42,8 +42,9 @@ agreement, not as accuracy (Section 9).
 **How the experiment evolved.** The experiment started as training a detector on the blur fingerprint alone (the edge
 residual of Section 7), on the hypothesis that the finest edge layer carries the blur pattern while suppressing the
 content. Its results, in particular that the fingerprint alone reached a high level, prompted the comparison with the
-plain RGB image and with a grayscale image, which separates the contribution of the frequency band (fingerprint vs
-grayscale) from that of colour (grayscale vs RGB).
+plain RGB image and with a grayscale image: grayscale vs RGB differ in colour; fingerprint vs grayscale mainly in the
+frequency band, but also in the encoding (linear residual vs sRGB-encoded luminance), the normalisation, the companding
+and the parametrisation of the first layer.
 
 **Prior work this builds on.** The edge fingerprint (Section 7) comes from our own earlier study,
 [RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling), which reconstructs a continuous RGB mesh from
@@ -547,18 +548,26 @@ and its axis the orientation of the motion. The temporal direction of the motion
 told: a uniform exposure kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
 geometry that a gradient magnitude or a spectrum loses, and it is a strong cue.
 
+**Numerical precision.** In training (and in all evaluations here) the model ran under bfloat16 autocast on the GPU, and
+the 3 × 3 convolution of the fingerprint ran in bfloat16 with it: its input, kernel and output were rounded to bfloat16,
+while `Y` stayed float32. In smooth regions this rounding is of the order of the fingerprint itself (on a test frame the
+median error is 7·10⁻⁵ against a median |d| of 2·10⁻⁴; a perfectly flat image gives inputs up to ±0.74 instead of 0). The
+published models were trained on this rounded fingerprint, and the published inference code reproduces the rounding
+explicitly on every device. A model trained on the exact float32 fingerprint is future work; its results may differ.
+
 **What is seen in the fingerprint as blur grows** (visual observation): first the edges thicken. Beyond that the picture
 varies from one motion blur to another, depending on how cleanly the edge doubles: a clean displacement between two
 positions produces two edges, and the contour lines double regularly. On video frames the patterns span a much wider
 range than this clean case (uneven speed, curved paths, partial and repeated motion, coding). It is computed on the GPU, never
-stored. Per image it is divided by its 99.5th percentile magnitude (floor 10⁻³) and companded as `sign · √|·|`, so only
+stored. Per image it is divided by its 99.5th percentile magnitude (taken over the valid pixels of a fixed 2 × 2 sub-grid; floor 10⁻³) and companded as `sign · √|·|`, so only
 the shape of the pattern counts, not the overall sharpness level of the recording.
 
 **RGB.** The plain image, ImageNet-normalised; the pretrained first layer is kept unchanged.
 
 **Grayscale.** The image without colour: the same linear-light luminance `Y` the fingerprint is made from (full frequency
 band), sRGB-encoded, copied to three channels so that the pretrained first layer is kept, and ImageNet-normalised.
-Fingerprint vs grayscale differ only in the frequency band; grayscale vs RGB only in colour.
+Grayscale vs RGB differ only in colour. Fingerprint vs grayscale differ mainly in the frequency band, but also in the
+encoding, the normalisation, the companding and the first layer, so that comparison is not a pure frequency-band control.
 
 In every case a last channel carries the validity mask; masked pixels are set to zero. For the fingerprint the first
 layer is adapted: its single fingerprint channel starts from the sum of the pretrained RGB filters.
@@ -575,7 +584,7 @@ layer is adapted: its single fingerprint channel starts from the sum of the pret
 - **Gradient magnitude or Fourier spectrum as input.** A Sobel / Laplacian magnitude drops the sign of the edges; a
   global spectrum drops where the blur is. Here the blur is often partial (one moving hand), video coding removes high
   frequencies from sharp frames as well, and noise or coding artefacts add them to blurred ones; so the model decides per
-  16 px cell on the signed pattern, and the image is blurred if blur appears anywhere.
+  16 px cell on the signed pattern, and a clearly blurred region can decide the image (soft maximum over the cells).
 - **Blur segmentation and kernel estimation.** Pixel-level blur maps are usually learned from small hand-labelled sets
   and often do not separate defocus from motion blur; patch-wise motion-kernel estimation learns from synthetic straight
   blur. The per-cell output here is a coarse blur map; a finer map would need a decoder.
@@ -589,8 +598,11 @@ layer is adapted: its single fingerprint channel starts from the sum of the pret
 
 **Model.** A ConvNeXt (Small; Base and Large are prepared) trunk up to stride 16, ImageNet weights (chosen over a DINOv3
 pre-training, Section 11). The first layer is adapted to the input channels; the mask channel starts at zero. A 1×1 head gives one logit
-per 16 px cell; the image logit is a masked log-sum-exp over the cells with a learnable sharpness r ("blurred if blur
-appears anywhere", differentiable). Cells covered less than half by valid pixels are excluded.
+per 16 px cell; the image logit is a masked log-sum-exp over the cells with a learnable sharpness r, normalised by the
+number of cells: a differentiable soft maximum. It was chosen so that blur anywhere can raise the image score, but it is
+not a logical "any cell" rule: with one dominant cell the image logit is about `local − log(n) / r`, so the size of a
+blurred region matters. The cell grid is the output sampling (16 px), not a validated 16 px receptive field or a
+segmentation. Cells covered less than half by valid pixels are excluded.
 
 **Loss.** Image-level binary cross-entropy plus a dense term (weight 0.5) on cells that contain edges: on photos every
 edge cell carries the image label (a camera motion moves every edge); frames have no dense term (where the blur is in a
