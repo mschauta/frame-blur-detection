@@ -338,11 +338,11 @@ recorded. Every model ran in its own process, and the GPU memory was released be
 before the next one was loaded).
 
 **Test images.**
-- *Photos with an exact injected blur length:* 400 openly licensed images from the
+- *Photos with an exact injected blur length:* all 1,000 openly licensed demo images from the
   [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (Hosu et al., 2024; CC0;
   a mix of photographs, edited images and renders, not people-centred). They are not training images: none of the
   detectors of this study has seen them. Each was given simulated camera blur of L = 0, 1, 2, 3, 4, 6 and 16 px through the
-  video path of Section 6: 2,800 images. L ≤ 3 px counts as sharp, 16 px as blurred; 4 and 6 px are reported only.
+  video path of Section 6: 7,000 images. L ≤ 3 px counts as sharp, 16 px as blurred; 4 and 6 px are reported only.
 - *Frames:* 1,278 confident-sharp frames (up to three per shot, at least 0.5 s apart) and 2,239 confident-blurred
   frames (one per shot) from the labelled videos, with the bounds of Section 9. Their reference is the 4B's own code,
   with which the measurement agrees, so the frames favour the 4B by construction: for the other sizes they show the
@@ -357,12 +357,12 @@ before the next one was loaded).
 
 | L (px) | 0 | 1 | 2 | 3 | 4 | 6 | 16 |
 |---|---|---|---|---|---|---|---|
-| 4B `sss` | 76.5% | 75.0% | 73.5% | 71.5% | 68.8% | 62.0% | 5.2% |
-| 4B blurred | 7.0% | 6.0% | 9.0% | 8.2% | 9.5% | 15.2% | 81.0% |
-| 9B `sss` | 91.0% | 90.0% | 87.8% | 86.5% | 84.0% | 74.5% | 6.0% |
-| 9B blurred | 3.0% | 3.0% | 3.0% | 3.0% | 4.0% | 7.8% | 81.0% |
-| 2B `sss` / blurred | 27.5% / 2.5% | | | 25.2% / 3.0% | | 17.0% / 5.8% | 0.2% / 63.0% |
-| 0.8B `sss` / blurred | 0.0% / 0.5% | | | 0.0% / 0.5% | | 0.0% / 1.5% | 0.0% / 18.8% |
+| 4B `sss` | 78.4% | 77.2% | 76.4% | 73.9% | 71.4% | 63.9% | 5.0% |
+| 4B blurred | 5.4% | 5.5% | 7.2% | 7.5% | 8.4% | 11.5% | 78.4% |
+| 9B `sss` | 91.9% | 91.2% | 89.9% | 88.3% | 86.3% | 77.7% | 6.6% |
+| 9B blurred | 2.3% | 2.7% | 2.4% | 2.7% | 3.3% | 6.0% | 79.3% |
+| 2B `sss` / blurred | 30.8% / 1.9% | | | 27.8% / 2.2% | | 20.0% / 4.6% | 0.2% / 58.4% |
+| 0.8B `sss` / blurred | 0.0% / 0.4% | | | 0.0% / 0.4% | | 0.0% / 1.1% | 0.0% / 19.3% |
 
 **Frames: same class as the 4B** (in brackets: the opposite class; the rest are the other, excluded codes):
 
@@ -378,20 +378,20 @@ before the next one was loaded).
 
 | model | images / h, frames | images / h, photos | GPU memory peak, frames | GPU memory peak, photos |
 |---|---|---|---|---|
-| 0.8B | 3,916 | 2,720 | 6.5 GB | 15.0 GB |
-| 2B | 4,259 | 4,994 | 9.4 GB | 17.4 GB |
-| 4B | 2,747 | 2,940 | 16.8 GB | 31.7 GB |
-| 9B | 2,045 | 2,127 | 25.1 GB | 31.8 GB |
+| 0.8B | 3,916 | 2,723 | 6.5 GB | 16.6 GB |
+| 2B | 4,259 | 4,986 | 9.4 GB | 19.7 GB |
+| 4B | 2,747 | 2,839 | 16.8 GB | 31.8 GB |
+| 9B | 2,045 | 1,974 | 25.1 GB | 32.1 GB |
 
 The memory peak is the device total during the run and includes the allocator's cache.
 
 **Findings.**
 - *The two small sizes do not discriminate.* The 0.8B answers "no" to all three questions (not blurry, but not sharp
-  either: code `sbb` on 90.8% of the frames and 96.4% of the photos); the 2B answers "yes" to all three (`bss` on
-  70.9% and 66.9%). Neither is usable as a blur labeller.
+  either: code `sbb` on 90.8% of the frames and 96.5% of the photos); the 2B answers "yes" to all three (`bss` on
+  70.9% and 65.6%). Neither is usable as a blur labeller.
 - *The 4B is reproducible.* Run again in batches, it returned exactly the stored code on all 3,517 frames.
-- *4B and 9B both follow the blur length:* at 16 px only 5–6% remain `sss` and both call 81% blurred.
-  The 9B is more lenient on the sharp side: it calls 91.0% of the unblurred photos `sss`, the 4B 76.5%. By the
+- *4B and 9B both follow the blur length:* at 16 px only 5–7% remain `sss`, and they call 78.4% and 79.3% blurred.
+  The 9B is more lenient on the sharp side: it calls 91.9% of the unblurred photos `sss`, the 4B 78.4%. By the
   definition of Section 6 an unblurred photo is sharp, so on these images the 4B errs more often on the sharp side.
 - *On frames the two differ mainly on the blurred side.* The 9B calls 15.9% of the blurred frames on which the measurement agrees
   sharp, 13.4% in close shots and 30.6% in shots that are not close. Which of the two is right cannot be decided on these
@@ -399,7 +399,7 @@ The memory peak is the device total during the run and includes the allocator's 
   the detector is trained through.
 - *Close shots are where the VLM matters.* The measurement-based filter does not work reliably on close-ups and extreme
   close-ups; the two usable sizes agree more there (76.0% of the blurred frames) than on shots that are not close (50.6%).
-- *Cost.* The 9B is about 25% slower than the 4B and needs nearly the whole 32 GB card in batches of four.
+- *Cost.* The 9B is about 25–30% slower than the 4B and needs nearly the whole 32 GB card in batches of four.
 
 *Note.* The model is prompt-sensitive and strongly composition-dependent, and its reasoning mode ("thinking") was
 switched off in every run. The figures above hold for these samples only; they are observations, not a general ranking
@@ -413,10 +413,10 @@ per request, batched answering decodes four greedily):
 | | same code as batched | opposite class (sharp ↔ blurred) | images / h | GPU memory peak |
 |---|---|---|---|---|
 | frames (3,517) | 90.2% (1 in 10 differs) | 6 frames (0.17%) | 934 (batched: 2,747) | 12.4 GB (batched: 16.8 GB) |
-| photos (2,800) | 91.5% (1 in 12 differs) | none | 997 (batched: 2,940) | 16.2 GB (batched: 31.7 GB) |
+| photos (7,000) | 91.9% (1 in 12 differs) | none | 1,012 (batched: 2,839) | 17.9 GB (batched: 31.8 GB) |
 
-Single-image answering kept `sss` on 75.0% of the unblurred photos (batched: 76.5%) and called 79.5% of the 16 px photos
-blurred (batched: 81.0%). Almost every difference between the two modes is a move between a used code and an excluded
+Single-image answering kept `sss` on 78.1% of the unblurred photos (batched: 78.4%) and called 76.6% of the 16 px photos
+blurred (batched: 78.4%). Almost every difference between the two modes is a move between a used code and an excluded
 one, not between the two classes. On these samples the two modes differ on about 1 in 10 images, more often than in the
 pilot (about 1 in 40, Section 4); single-image answering was about three times slower.
 
