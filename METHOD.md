@@ -1,7 +1,5 @@
 # Method
 
-*Draft. Experiments are still running; numbers marked as preliminary will be updated.*
-
 ## 1. Task and scope
 
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
