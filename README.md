@@ -35,6 +35,19 @@ This page summarises the approach and the results.
 | model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
 
+### Why the photos go through video coding
+
+![Why every training photo goes through H.264](figures/why_video_coding.png)
+
+*Top two rows: a demo photo (UHD-IQA, CC0) with 4 px and 16 px of simulated camera blur. Without coding, the camera
+noise of the photo is smeared by the blur into fine parallel streaks along the motion, a hatched pattern that is
+conspicuous in the edge fingerprint even at 4 px; a model trained on it would learn the hatching instead of the blur of
+real frames. After one H.264 frame (CRF 23) the streaks are gone and the noise floor is that of the coder, as in real
+video frames (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
+CC BY 3.0, prepared as described in test_images/README.md). The fingerprint is shown around mid-grey: darker = negative,
+lighter = positive. Every photo of the training set goes through this chain: blur in linear light, then H.264, then
+decoding (METHOD §6).*
+
 ## Results (validation, 100 epochs)
 
 Validation uses **videos never seen in training**, balanced per video (3,301 sharp and 3,301 blurred frames from 11
