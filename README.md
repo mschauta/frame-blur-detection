@@ -1,8 +1,5 @@
 # Frame Blur Detection
 
-*Draft. The experiments are still running; numbers will be updated. The inference code and weights are included; the
-training code will follow.*
-
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The results so far
 come from a narrow, people-centred material (37 labelled videos) and its validation split; universality is the aim, not
