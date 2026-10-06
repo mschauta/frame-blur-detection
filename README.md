@@ -9,6 +9,8 @@ come from a narrow, people-centred material (37 labelled videos) and its validat
 yet a demonstrated property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
 
+![Frame Blur Detection infographic](figures/frame_blur_detection_infographic.png)
+
 The full description of the material, the labelling, the training and the evaluation is in [METHOD.md](METHOD.md).
 This page summarises the approach and the results.
 
