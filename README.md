@@ -279,6 +279,54 @@ derived images are published. Published are the method, the selection and labell
 and the trained weights; the training, labelling, selection and evaluation code, the configurations and the run
 provenance will follow (METHOD §12).
 
+## Related work
+
+Earlier work provides precedents for blur detection, normalised residual inputs and VLM-based quality supervision.
+The references below position the components of this study; their tasks, datasets and evaluation protocols differ.
+
+- **Shi, Xu and Jia, [Discriminative Blur Detection Features](https://www.cv-foundation.org/openaccess/content_cvpr_2014/papers/Shi_Discriminative_Blur_Detection_2014_CVPR_paper.pdf)
+  (CVPR, 2014).** Gradient, Fourier and learned local-filter features for blur detection, with the pixel-labelled CUHK
+  benchmark. An early precedent for learning from local high-frequency evidence; the method uses feature-based blur
+  maps rather than the normalised signed residual and ConvNeXt used here.
+- **Bayar and Stamm, [A Deep Learning Approach To Universal Image Manipulation Detection Using A New Convolutional Layer](https://doi.org/10.1145/2909827.2930786)
+  (ACM IH&MMSec, 2016).** A constrained convolution produces a signed prediction-error residual to suppress image
+  content and expose processing traces; Gaussian-blur detection is among the experiments. This is a residual-domain
+  CNN precedent, with manipulation detection as its task and learned filters rather than the fixed mesh kernel.
+- **Yu et al., [A shallow convolutional neural network for blind image sharpness assessment](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176632)
+  (PLOS ONE, 2017).** A CNN predicts sharpness from grayscale patches after local mean subtraction and contrast
+  normalisation, and RGB and grayscale inputs are compared. A close precedent for normalised residual-based sharpness
+  learning; its target is a continuous quality score on Gaussian-blur data, with local rather than per-image p99
+  normalisation.
+- **Kim et al., [Defocus and Motion Blur Detection with Deep Contextual Features](https://doi.org/10.1111/cgf.13567)
+  (Computer Graphics Forum, 2018).** Real and synthetic blur images train an RGB encoder-decoder to distinguish sharp,
+  motion-blurred and defocused pixels. Related to combining real and synthetic supervision and to the planned blur-type
+  stage; it uses pixel-level labels and contextual features rather than VLM-derived frame labels.
+- **Alvarez-Gila et al., [Self-supervised Blur Detection from Synthetically Blurred Scenes](https://doi.org/10.1016/j.imavis.2019.08.008)
+  (Image and Vision Computing, 2019; [open manuscript](https://arxiv.org/abs/1908.10638)).** Synthetic defocus and motion
+  blur provide masks for a DeepLab detector; real and synthetic data are also combined. Random JPEG compression during
+  preprocessing discourages dataset-specific low-level cues, a conceptual precedent for the coding-chain treatment
+  here. Its synthetic region masks and JPEG augmentation serve a different role from native video labels and H.264
+  noise-floor matching.
+- **Li et al., [Decoupling Perception and Calibration: Label-Efficient Image Quality Assessment Framework (LEAF)](https://arxiv.org/abs/2601.20689)
+  (arXiv preprint, January 2026).** A frozen InternVL teacher supplies quality judgments and confidence-weighted pairwise
+  preferences to an ImageNet-pretrained ConvNeXt student, with optional calibration using limited human quality scores.
+  A close precedent for VLM-to-CNN quality supervision; the task is general image-quality regression, whereas this study
+  uses filtered blur-specific video labels and synthetic blur anchors.
+- **Samarth et al., [Subtle Motion Blur Detection and Segmentation from Static Image Artworks](https://arxiv.org/abs/2602.18720)
+  (WACV workshop, 2026).** Local camera- and object-motion synthesis and an ImageNet-pretrained U-Net detector target
+  subtle blur in artwork and video-frame selection, including small foreground regions such as faces and hands.
+  Closely related in application and local-blur emphasis; training uses synthetic region masks, with segmentation and
+  blur-intensity outputs.
+- **Duy Tran Thanh, [Edges Before Embeddings: A Confidence-Aware Blur Gate for Vision-Language Pipelines](https://arxiv.org/abs/2606.25838)
+  (arXiv preprint, June 2026).** A GoPro-trained MobileNet blur gate adds a per-image-standardised Laplacian-magnitude
+  channel to RGB and permits an uncertain decision. A close edge-input classification precedent; its edge magnitude is
+  an auxiliary RGB channel, while the fingerprint run here uses the signed residual as its image input. VLMs are
+  downstream consumers in that pipeline.
+
+The combination examined here is filtered VLM supervision on native video frames, independent measurement-based
+selection of sharp frames, synthetic blur anchors passed through H.264, and a comparison of RGB, grayscale and signed
+residual inputs. The contribution evaluated here is this combination on the material described in METHOD.md.
+
 ## Related work by the author
 
 - [RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling): the continuous RGB-mesh reconstruction from
