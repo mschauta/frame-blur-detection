@@ -516,7 +516,9 @@ CRF 23 gives `D = 3.1301 / 1.2301 / 1.2404` for the three reference groups. For 
 mean `|d| × 10³` is 0.1384 / 0.1616 / 0.1764 for the videos, 0.7580 for uncoded photos, and
 0.3037 / 0.2202 / 0.1859 / 0.1644 for CRF 18 / 23 / 28 / 33. Higher CRFs can therefore be closer on that one
 amplitude statistic while differing more on the composite criterion. This unblurred-photo probe does not validate
-matching of the final mixed sharp / blurred training distribution. The measurement code and per-image tables are not yet public.
+matching of the final mixed sharp / blurred training distribution. The public
+[aggregate table, definitions and arithmetic verifier](reproduction/README.md#codec-comparison) reproduce the ranking
+from the recorded medians; the image-measurement code and private per-image tables are not included.
 
 > original → flip / 90° rotation → camera motion blur in linear light → H.264 (x264 High, 4:2:0, BT.709, one frame) → decoded
 
@@ -530,7 +532,8 @@ matching of the final mixed sharp / blurred training distribution. The measureme
 
 **Systematic, not random variants.** Each class has a fixed grid of 4 lengths × 12 directions (every 15°) × 4 CRF values
 (20, 23, 26, 28) = 192 points. Every photo walks this grid with a stride co-prime to its size, so each epoch gives every
-photo a different variant and the grid points are evenly spread over the pool at every epoch. Samples are made on the fly.
+photo a different variant and hashed starting offsets spread the grid points across the pool. This does not guarantee
+exact balancing at each epoch. Samples are made on the fly.
 
 **Blur kernel.** The motion segment is convolved with the linear-interpolation (tent) reconstruction of the image, so the
 kernel is correct for small L (L = 1 px already blurs; its spread matches the theoretical value from 1 px on).
@@ -594,7 +597,7 @@ is described below.
 a line therefore carries the polarity of the edge (which side is brighter). The width and spacing of signed structures
 can provide cues to blur extent and orientation, depending on the original structure and blur kernel; no exact kernel
 recovery is established here. The temporal direction of the motion (from A to B or from B to A) cannot be
-told: a uniform exposure kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
+told: a uniform straight-motion kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
 local polarity and geometry that a gradient magnitude or a global magnitude spectrum discards.
 
 **Numerical precision.** In training (and in all evaluations here) the model ran under bfloat16 autocast on the GPU, and
@@ -610,8 +613,9 @@ varies from one motion blur to another, depending on how cleanly the edge double
 positions produces two edges, and the contour lines double regularly. On video frames the patterns span a much wider
 range than this clean case (uneven speed, curved paths, partial and repeated motion, coding). It is computed on the GPU, never
 stored. Per image it is divided by its 99.5th percentile magnitude (taken over the valid pixels of a fixed 2 × 2 sub-grid; floor 10⁻³) and companded as `sign · √|·|`.
-This reduces dependence on the residual's overall scale and emphasises spatial pattern. The floor, sampled percentile
-and preceding bfloat16 rounding mean that the input is not strictly invariant to scale.
+This reduces dependence on the residual's overall scale and emphasises spatial pattern. The floor and preceding
+bfloat16 rounding mean that the input is not strictly invariant to scale. For an ideal residual and a fixed valid
+sub-grid, the sampled percentile itself scales with a positive global multiplier.
 
 **RGB.** The plain image, ImageNet-normalised; the pretrained first layer is kept unchanged.
 
@@ -662,10 +666,11 @@ edge cell carries the synthetic image label, because the injected kernel is glob
 not independently verified local sharpness ground truth; an L = 0 original may already have blurred regions. Frames
 have no dense term (where the blur is in a frame is unknown).
 
-**Sampling.** Each epoch draws 12,000 samples from four strata: sharp frames, blurred frames, sharp photos and blurred
+**Sampling.** Each epoch nominally draws 12,000 samples from four strata: sharp frames, blurred frames, sharp photos and blurred
 photos, 3,000 each. Inside a stratum every sample is equally likely and drawn without repetition until the stratum is
 exhausted, then reshuffled. There is no weighting by video or source: the selection decides which frames take part, the
-sampler does not re-weight them. Flips and 90° rotations are applied per sample (lossless).
+sampler does not re-weight them. Flips and 90° rotations are applied per sample (lossless). Shape-bucketed batches
+discard incomplete bucket tails, so nominal draws and pass counts are not exact numbers of optimiser-visible images.
 
 | stratum | pool | one full pass | passes in 100 epochs |
 |---|---|---|---|
@@ -678,7 +683,7 @@ overlay does not make a blurred frame sharp.
 
 ### 8.1 Repetition: passes over the data, and frames as permutations of shots
 
-An epoch draws 3,000 samples from each of the four strata, without repetition inside a stratum until it is exhausted,
+An epoch nominally draws 3,000 samples from each of the four strata, without repetition inside a stratum until it is exhausted,
 then reshuffled. The strata differ in size, so they are revisited at different rates:
 
 | stratum | pool (training) | one full pass | passes in 100 epochs | what a repetition is |
@@ -688,7 +693,8 @@ then reshuffled. The strata differ in size, so they are revisited at different r
 | blurred frames (`bbb`, `bsb`) | 58,364 | ~19.5 epochs | ~5.1 | the same frame |
 
 **Why the analysis counts passes over the blurred frames.** The blurred frames are the largest pool and the slowest
-cycle: only after one blurred-frame pass has the model seen every training sample at least once. Within one such pass
+cycle: a full nominal blurred-frame pass covers the slowest sampler pool. Bucket tails and the resume behaviour below
+mean that this does not guarantee optimiser exposure to every sample. Within one such nominal pass
 the sharp frames are revisited about 4.4 times and the photos about twice. The validation curves oscillate with these
 cycles, so results are compared as means per blurred-frame pass, not as single epochs.
 
@@ -755,6 +761,17 @@ generalisation to unseen videos.
   None of the models reaches 100% on its own training frames. RGB learns its training images fastest; the edge
   fingerprint starts lowest but reaches the highest training level of the two colourless inputs; grayscale has the
   smallest gap early on but the lowest training level at the end.
+- **Validation uncertainty.** The released [paired video-cluster bootstrap](reproduction/uncertainty/README.md)
+  uses the saved epoch-99 scores on all 6,602 validation frames, sampling the 11 video groups uniformly with replacement
+  for 5,000 shared draws (seed 20261007), keeping each selected group's frames together. Pooled frame-weighted AUC and
+  retention/recall receive percentile 95% intervals; model differences use the same draws. Two retention analyses are
+  distinguished: thresholds fixed at the original saved-score validation calibration, and thresholds recalibrated
+  within each bootstrap sample. The README reports the latter at 95% recall. The former also reports realised recall,
+  which varies between samples. These are conditional on one saved model per input and teacher labels, with only
+  11 groups and six-decimal stored scores; they do not measure training-seed variation, independent label accuracy or
+  unseen-domain performance. The pairwise difference intervals for AUC and recalibrated retention at 95% and 98%
+  recall include zero; this is not an equivalence test. The repeatedly inspected validation cohort is not an untouched
+  test set. No new inference or training was run for this analysis.
 - **External evaluation and selection sets.** The README reports the GoPro pairs, real-frame sets and photo blur
   ladders separately from the internal train / validation / test split. The alternative checkpoints were chosen using
   these external sets; they are therefore selection data for those checkpoints. Their scores are descriptive external
@@ -779,7 +796,7 @@ generalisation to unseen videos.
 | optimiser | AdamW, weight decay 0.05, gradient clipping 1.0 |
 | learning rate | trunk 1·10⁻⁴, head 1·10⁻³; warm-up 0.5 epoch; single cosine to 1% |
 | batch | 8 images × 2 accumulation steps (effective 16), batches bucketed by image shape |
-| epoch | 12,000 samples, ~13.6 min including validation (~25 images/s) |
+| epoch | 12,000 nominal draws before incomplete shape-bucket tails, ~13.6 min including validation (~25 images/s) |
 | runs | no early stopping; every epoch saved |
 | labelling (VLM teacher) | Qwen3.5-4B-bf16, on the same GPU; three questions per image, batches of 4, greedy decoding |
 | labelling throughput | ~2,900 images/h in a standalone run on 1080p photos (no other load on the machine) |
@@ -872,7 +889,10 @@ before this fix.
 
 The dataset is **not published**: it was built from copyrighted videos and photo albums. No images, frames, crops or
 derived images from that dataset (edge images, heat maps) are published. Published are the method, reported metrics,
-inference code and trained weights. Run provenance is recorded as described in Section 10, but its manifests, the
-training, labelling, selection and evaluation code, and the configurations are not yet included in the public repository.
-This limits independent reproduction of the reported training results. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
+inference code and trained weights. The [public evidence package](reproduction/README.md) supplies codec medians and
+definitions, aggregate split/provenance records, an arithmetic verifier, reproducible SVG summaries and a validation
+bootstrap procedure with its aggregate results. The GoPro mirror's public image-file identities are recorded separately.
+Full start manifests, training, labelling, selection and image-measurement/evaluation code, and complete configurations
+are not included; the aggregate package does not reproduce private measurements or training. This limits independent
+reproduction of the reported training results. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
 the changes made are listed next to them.

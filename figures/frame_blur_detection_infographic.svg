@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1120" viewBox="0 0 1400 1120" role="img" aria-labelledby="title desc">
+<title id="title">Frame Blur Detection</title>
+<desc id="desc">Frame metrics measure agreement with VLM labels; they do not establish objective accuracy.</desc>
+<rect width="1400" height="1120" fill="#111b2b"/>
+<g font-family="DejaVu Sans, Arial, sans-serif">
+<text x="40" y="65" font-size="43" fill="#f2f6fc" font-weight="700" text-anchor="start">Frame Blur Detection</text>
+<text x="40" y="107" font-size="23" fill="#b6c7dd" font-weight="400" text-anchor="start">Three input representations • one fixed study snapshot • reported validation</text>
+<text x="40" y="154" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">MATERIAL AND SUPERVISION</text>
+<rect x="40" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="58" y="209" font-size="22" fill="#72b7ff" font-weight="700" text-anchor="start">Historical video snapshot</text>
+<text x="58" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">37 processed video files</text>
+<text x="58" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">36 unique video groups</text>
+<text x="58" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">One duplicate copy excluded</text>
+<rect x="485" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="503" y="209" font-size="22" fill="#c4adff" font-weight="700" text-anchor="start">Native blur, including motion blur</text>
+<text x="503" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Filtered VLM reference labels</text>
+<text x="503" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Blur types are not separated</text>
+<text x="503" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Measurement selects; never relabels</text>
+<rect x="930" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="948" y="209" font-size="22" fill="#6be1ce" font-weight="700" text-anchor="start">Synthetic construction labels</text>
+<text x="948" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Added L = 0–3 px: sharp label</text>
+<text x="948" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Added L = 16–30 px: blurred label</text>
+<text x="948" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Strictly 3 &lt; L &lt; 16 excluded</text>
+<text x="40" y="375" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">INPUTS COMPARED WITH THE SAME TRAINING RECIPE</text>
+<rect x="40" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="58" y="431" font-size="24" fill="#72b7ff" font-weight="700" text-anchor="start">RGB image</text>
+<text x="58" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Full colour image</text>
+<text x="58" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">ImageNet normalisation</text>
+<text x="58" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">ConvNeXt-Small backbone</text>
+<rect x="485" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="503" y="431" font-size="24" fill="#c4adff" font-weight="700" text-anchor="start">Grayscale image</text>
+<text x="503" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Linear-light luminance</text>
+<text x="503" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">sRGB encoding, three channels</text>
+<text x="503" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Full spatial frequency band</text>
+<rect x="930" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="948" y="431" font-size="24" fill="#6be1ce" font-weight="700" text-anchor="start">Signed edge fingerprint</text>
+<text x="948" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Mesh-derived residual Y − K * Y</text>
+<text x="948" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Published bfloat16 rounding</text>
+<text x="948" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Per-image percentile + floor</text>
+<text x="40" y="595" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">EPOCH 99 • 6,602 VALIDATION FRAMES • 11 UNSEEN VIDEO GROUPS</text>
+<rect x="40" y="616" width="1320" height="213" rx="14" fill="#1b2a40"/>
+<text x="62" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="start">Input</text>
+<text x="493" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Frame AUC</text>
+<text x="818" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Sharp kept at 95% recall</text>
+<text x="1148" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Agreement-subset AUC</text>
+<text x="62" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="start">RGB</text>
+<text x="493" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">0.952</text>
+<text x="818" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">74.9%</text>
+<text x="1148" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">0.992</text>
+<text x="62" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="start">Grayscale</text>
+<text x="493" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">0.942</text>
+<text x="818" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">70.0%</text>
+<text x="1148" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">0.993</text>
+<text x="62" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="start">Edge fingerprint</text>
+<text x="493" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">0.949</text>
+<text x="818" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">73.9%</text>
+<text x="1148" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">0.990</text>
+<text x="40" y="861" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Frame metrics measure agreement with VLM labels; they do not establish objective accuracy.</text>
+<text x="40" y="903" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">WHAT THE COMPARISON SUPPORTS</text>
+<text x="40" y="940" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">On this material, the signed residual alone</text>
+<text x="40" y="969" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">supports discrimination close to full-image runs.</text>
+<text x="40" y="998" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">One saved training seed per input; similar scores</text>
+<text x="40" y="1027" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">do not establish statistical equivalence.</text>
+<text x="731" y="940" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">RGB ↔ grayscale transfer well; calibration differs.</text>
+<text x="731" y="969" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">The residual also contains texture and artefacts.</text>
+<text x="731" y="998" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Ideal I − K is a weighted discrete Laplacian;</text>
+<text x="731" y="1027" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">rounding and the floor qualify scale invariance.</text>
+<text x="40" y="1072" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">Internal 7-group test: not yet evaluated. External sets also selected alternative checkpoints.</text>
+<text x="40" y="1093" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">L = 0 means no added blur; it is not a guarantee that the original photo is objectively sharp.</text>
+<text x="40" y="1114" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">Native SVG generated by reproduction/render_figures.py • Full definitions and limits: METHOD.md</text>
+</g>
+</svg>

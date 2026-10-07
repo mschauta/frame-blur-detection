@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="870" viewBox="0 0 1400 870" role="img" aria-labelledby="title desc">
+<title id="title">Why photos go through H.264: exploratory residual statistics</title>
+<desc id="desc">Group medians from 40 unblurred photos and 300 teacher-sharp native video frames. CRF 23 is closest by a composite heuristic, not by flat-region amplitude alone.</desc>
+<rect width="1400" height="870" fill="#111b2b"/>
+<g font-family="DejaVu Sans, Arial, sans-serif">
+<text x="40" y="65" font-size="43" fill="#f2f6fc" font-weight="700" text-anchor="start">Why photos go through H.264</text>
+<text x="40" y="108" font-size="24" fill="#b6c7dd" font-weight="400" text-anchor="start">Exploratory probe: 40 unblurred photos • 3 × 100 teacher-sharp video frames</text>
+<text x="40" y="157" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">FLAT-REGION RESIDUAL AMPLITUDE</text>
+<text x="40" y="191" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Median of 1,000 × mean |d| in the lowest-residual 30% of 16 px cells</text>
+<text x="40" y="239" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">Video A (100 frames)</text>
+<rect x="432" y="215" width="117.6278935450216" height="29" rx="3" fill="#72b7ff"/>
+<text x="562.6278935450216" y="239" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.1384</text>
+<text x="40" y="286" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">Video B (100 frames)</text>
+<rect x="432" y="262" width="137.36550289150364" height="29" rx="3" fill="#72b7ff"/>
+<text x="582.3655028915036" y="286" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.1616</text>
+<text x="40" y="333" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">Video C (100 frames)</text>
+<rect x="432" y="309" width="149.9385242715877" height="29" rx="3" fill="#72b7ff"/>
+<text x="594.9385242715878" y="333" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.1764</text>
+<text x="40" y="380" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">Uncoded PNG (40 photos)</text>
+<rect x="432" y="356" width="644.3419390271106" height="29" rx="3" fill="#6be1ce"/>
+<text x="1089.3419390271106" y="380" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.7580</text>
+<text x="40" y="427" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">H.264 CRF 18 (40 photos)</text>
+<rect x="432" y="403" width="258.10709647456054" height="29" rx="3" fill="#6be1ce"/>
+<text x="703.1070964745605" y="427" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.3037</text>
+<text x="40" y="474" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">H.264 CRF 23 (40 photos)</text>
+<rect x="432" y="450" width="187.1543234805062" height="29" rx="3" fill="#6be1ce"/>
+<text x="632.1543234805063" y="474" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.2202</text>
+<text x="40" y="521" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">H.264 CRF 28 (40 photos)</text>
+<rect x="432" y="497" width="157.97251090482297" height="29" rx="3" fill="#6be1ce"/>
+<text x="602.9725109048229" y="521" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.1859</text>
+<text x="40" y="568" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">H.264 CRF 33 (40 photos)</text>
+<rect x="432" y="544" width="139.71247524972188" height="29" rx="3" fill="#6be1ce"/>
+<text x="584.7124752497218" y="568" font-size="23" fill="#f2f6fc" font-weight="400" text-anchor="start">0.1644</text>
+<rect x="40" y="634" width="1320" height="203" rx="14" fill="#1b2a40"/>
+<text x="62" y="674" font-size="25" fill="#6be1ce" font-weight="700" text-anchor="start">CRF 23 was closest by the combined criterion, not by amplitude alone.</text>
+<text x="62" y="714" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">The heuristic combines flat/edge ratio, near-zero fraction, 8 px block structure and horizontal correlation.</text>
+<text x="62" y="744" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Residual proxies also include texture and coding artefacts; they are not isolated sensor-noise measurements.</text>
+<text x="62" y="774" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Ideal float64 residual, single intra-coded frame: no test of bfloat16 input or temporal P/B artefacts.</text>
+<text x="62" y="804" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">This probe does not establish matching of the final mixed sharp/blurred training distribution.</text>
+<text x="40" y="861" font-size="18" fill="#b6c7dd" font-weight="400" text-anchor="start">Data and exact criterion: reproduction/codec_group_medians.csv and codec_criterion.json • METHOD §6</text>
+</g>
+</svg>

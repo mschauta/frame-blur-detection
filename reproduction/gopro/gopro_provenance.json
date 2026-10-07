@@ -1,0 +1,28 @@
+{
+  "mirror_url": "https://www.kaggle.com/datasets/rahulbhalley/gopro-deblur",
+  "mirror_title": "gopro_deblur",
+  "kaggle_dataset_id": 627736,
+  "kaggle_version_number": 1,
+  "kaggle_version_id_from_download_metadata": 1118216,
+  "archive_host_path": "https://storage.googleapis.com/kaggle-data-sets/627736/1118216/bundle/archive.zip",
+  "download_date_utc": "2026-10-04",
+  "archive_bytes": 2046286654,
+  "archive_sha256": "d43f49edd39314de280b80d5da42d499063e8edb28dadfaa1e3945797be28588",
+  "pair_count": 1029,
+  "png_count": 2058,
+  "archive_member_checks": "All extracted PNG sizes and CRC32 values match the existing archive's central directory; SHA256 is recorded for each local member.",
+  "manifest_sha256": "e20b9753e04e78de8bf1e4e18336b4a57c22d044c07b41fff1cb0c02ab394c48",
+  "verified_without_image_decoding": true,
+  "source_evidence": [
+    "User explicitly confirmed this Kaggle mirror URL.",
+    "Extracted PNG download metadata references the existing local archive.",
+    "Archive download metadata identifies Kaggle dataset 627736/version 1118216; signed query parameters are omitted.",
+    "Kaggle public dataset metadata associates dataset 627736 with rahulbhalley/gopro-deblur, version 1, and this archive byte size."
+  ],
+  "original_dataset_page": "https://seungjunnah.github.io/Datasets/gopro.html",
+  "original_paper_url": "https://openaccess.thecvf.com/content_cvpr_2017/papers/Nah_Deep_Multi-Scale_Convolutional_CVPR_2017_paper.pdf",
+  "original_paper_test_pairs": 1111,
+  "original_mapping_status": "Not established: the flattened mirror names have not been mapped to original GoPro sequences/frame IDs or verified against the official 1111-pair test split.",
+  "blur_variant_status": "Not established: the official dataset provides both gamma-corrected and linear-CRF blur variants; the mirror-to-original variant mapping is unverified.",
+  "claims_supported": "Results apply to this verified 1029-pair mirror copy, not automatically to the complete official GoPro test benchmark."
+}

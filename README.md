@@ -7,11 +7,9 @@ duplicates another under a different name) and its validation split; universalit
 property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
 
-![Frame Blur Detection infographic](figures/frame_blur_detection_infographic.png)
+![Frame Blur Detection infographic](figures/frame_blur_detection_infographic.svg)
 
-*In this visual summary, "37 labelled videos" counts files (36 unique video groups). The reconstruction statement
-refers to the ideal, unnormalised residual; the rounded, masked and normalised model input requires the qualifications
-in METHOD §7. The normalisation reduces scale dependence and includes a floor.*
+[Magyar nyelvű összefoglaló](figures/hungarian.svg).
 
 The full description of the material, the labelling, the training and the evaluation is in [METHOD.md](METHOD.md).
 This page summarises the approach and the results.
@@ -43,20 +41,15 @@ This page summarises the approach and the results.
 
 ### Why the photos go through video coding
 
-![Why every training photo goes through H.264](figures/why_video_coding.png)
+![Exploratory codec comparison: flat-region residual group medians](figures/why_video_coding.svg)
 
-*The figure's "streaks gone" and noise-floor labels describe these examples; the qualified measurement claim is below.*
-
-*Top two rows: a demo photo (UHD-IQA, CC0) with 4 px and 16 px of simulated camera blur. Without coding, the camera
-noise of the photo is smeared by the blur into fine parallel streaks along the motion, a hatched pattern that is
-conspicuous in the edge fingerprint even at 4 px and a potential shortcut for the model. After one H.264 frame
-(CRF 23) the streaks are strongly suppressed in this example. In the exploratory comparison of METHOD §6, CRF 23
-ranked closest under a heuristic combining flat-region residual, near-zero, block and horizontal-correlation statistics;
-it was not closest on flat-region amplitude alone. These residual measures are proxies, not isolated sensor-noise
-measurements or a guarantee for all codecs (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
-CC BY 3.0, prepared as described in test_images/README.md). The fingerprint is shown around mid-grey: darker = negative,
-lighter = positive. Every photo of the training set goes through this chain: blur in linear light, then H.264, then
-decoding (METHOD §6).*
+In inspected examples, adding motion blur to uncoded photos produces fine streaks in the residual; passing through
+H.264 suppresses them. This observation motivated reducing a potential photo/video shortcut. The separate quantitative
+probe above uses 40 **unblurred** original photos and 100 teacher-sharp frames from each of three videos. CRF 23 ranks
+closest under the combined flat/edge, near-zero, block and horizontal-correlation criterion, while higher CRFs can be
+closer on amplitude alone. These are residual proxies, not isolated sensor-noise measurements or proof of matching the
+final training distribution. The [released medians and exact criterion](reproduction/README.md#codec-comparison) make
+the arithmetic checkable. Every training photo follows blur in linear light → H.264 → decode (METHOD §6).
 
 ## Results (validation, 100 epochs)
 
@@ -106,6 +99,24 @@ harder on the evaluated material.
   residual scale (with a floor), and colour is lost (METHOD §7). These results do not identify which cues each model
   uses or show that the models use the same ones; the cross-test measures sensitivity to representation changes.
 
+### Uncertainty of the epoch-99 validation comparison
+
+A paired video-group bootstrap of the saved validation scores resamples the 11 groups together for all three models
+(5,000 draws; percentile 95% intervals). Whole groups, rather than independent frames, are the resampling units.
+
+| input | frame AUC [95% interval] | sharp kept at 95% recall [95% interval] |
+|---|---|---|
+| RGB | 0.952 [0.924, 0.974] | 74.9% [61.8%, 86.5%] |
+| grayscale | 0.942 [0.904, 0.973] | 70.0% [61.8%, 87.5%] |
+| edge fingerprint | 0.949 [0.927, 0.973] | 73.9% [69.7%, 85.2%] |
+
+The sharp-retention intervals above **recalibrate the threshold within each bootstrap draw**. Intervals conditional on
+the original validation threshold, realised recall and paired differences are also
+[released with the procedure](reproduction/uncertainty/README.md). All pairwise difference intervals for AUC and
+recalibrated retention at 95% and 98% recall include zero. This does not establish equivalence. The analysis is
+conditional on one trained checkpoint per input, teacher labels and this validation cohort; it does not cover seed
+variation or independent perceptual accuracy. Only 11 groups and six-decimal saved scores limit the estimate.
+
 ### Training frames against unseen videos
 
 Every run was also evaluated after every epoch on a fixed subset of its own training data, with the threshold taken from
@@ -129,7 +140,7 @@ checkpoints.
 |---|---|---|
 | demo photos | 1,000 photos of the [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (CC0), each with simulated camera blur of L = 0, 0.5 … 6 and 16 px through the coding chain of METHOD §6 | exact injected blur length: 0–3 px sharp, 16 px blurred (4–6 px not counted) |
 | demo frames | 1,000 raw camera frames of *Tears of Steel* ((CC) Blender Foundation, mango.blender.org, CC BY 3.0), 1080p, one H.264 frame | the teacher's code: `sss` sharp, `bbb` / `bsb` blurred, other codes left out. A reference, not ground truth |
-| GoPro pairs | 1,029 sharp / blurred pairs of the GoPro deblurring dataset (Nah et al., CVPR 2017), native and through one H.264 frame (CRF 23) | the pair; the blur is synthetic (see below) |
+| GoPro pairs | 2,058 images = 1,029 sharp / blurred pairs from the [Kaggle GoPro mirror](https://www.kaggle.com/datasets/rahulbhalley/gopro-deblur), native and through one H.264 frame (CRF 23) | the pair; the blur is synthetic (see below) |
 
 **How the GoPro blur was made, and why it is new to the detectors.** According to the original paper (Nah, Kim and Lee,
 CVPR 2017), the GoPro images were recorded at 240 frames per second; a blurred image is the average of 7 to 13
@@ -137,16 +148,18 @@ consecutive frames after linearising the gamma, and its sharp counterpart is the
 discrete copies: on one pair (a car's tail light) we counted 7 edge copies about 6.3 px apart. The detectors never saw
 blur made this way: the synthetic blur of their training photos is a continuous motion of 0–3 or 16–30 px (METHOD §6),
 and the blur of their training frames is native. The GoPro pairs therefore test blur produced in a way that is absent from the training data, a sampled
-approximation of the exposure integral, rather than a new physical kind of blur. The copy used here has 1,029 pairs
-(the original paper lists 1,111 test pairs); it was obtained from a public mirror, and which subset it is was not
-established.
+approximation of the exposure integral, rather than a new physical kind of blur. The copy used here has **2,058 PNG
+images (1,029 pairs)** from the [Kaggle mirror](https://www.kaggle.com/datasets/rahulbhalley/gopro-deblur), version 1.
+The original paper lists 1,111 test pairs. The download source is established; correspondence to that original split
+and to its gamma-corrected versus linear variant has not been established. See the
+[file-integrity and provenance record](reproduction/gopro/README.md).
 
 **How to read the three-set diagrams.** Each panel shows the images of one reference class at one operating point. The
 three circles hold the images that the RGB, grayscale and edge-fingerprint model (epoch 99) call *blurred*; the numbers
 are image counts per region, and the number outside the circles counts the images all three call *sharp*. In the
 upper row (reference sharp) everything inside the circles is a false alarm; in the lower row (reference blurred)
-everything inside is caught and the number outside is missed by all three models. The diagrams show not only how many
-errors a model makes, but whether the models make the same ones.
+everything inside is caught and the number outside is missed by all three models. The diagrams show the number and
+overlap of disagreements with the reference labels.
 
 The percentages under the diagrams ("caught", "false alarm") count images called blurred by **at least one** of the
 three models.
@@ -165,9 +178,10 @@ The 95% operating point is a calibration target on the validation frames, not a 
 on the external sets the thresholds shift the balance between kept and caught images, in different directions for the
 three inputs. The demo-frame row measures agreement with the teacher.
 
-**Limits of these results.** One training run per input (one seed); the differences of a few points between the inputs
-are not yet backed by confidence intervals (video-level bootstrap is planned). The held-out test split of the labelled
-videos (7 video groups) has not been evaluated yet; it will be, once for the chosen checkpoints. Checkpoints chosen on
+**Limits of these results.** One training run per input (one seed). The validation bootstrap above covers video-group
+sampling conditional on these saved models; external-set differences and training-seed variation are not covered.
+The held-out test split of the labelled videos (7 video groups) has not been evaluated yet; the
+[fixed evaluation protocol](reproduction/EXPERIMENT_PLAN.md) defines that remaining experiment. Checkpoints chosen on
 the external sets above turn them into selection data, so final claims about such a checkpoint need material that was
 not used to choose it.
 
@@ -316,9 +330,11 @@ non-public material (METHOD §12).
 
 The training data is **not published**: it was built from copyrighted videos and photographs. No images, frames, crops or
 derived images from that dataset are published. Published are the method, selection and labelling rules, reported
-metrics, inference code and trained weights. The training, labelling, selection and evaluation code, configurations
-and recorded run-provenance manifests are not yet included in the public repository, limiting independent
-reproduction (METHOD §12). The repository's demonstration images use separately credited openly licensed sources.
+metrics, inference code and trained weights. The [public evidence package](reproduction/README.md) includes aggregate
+codec/split/provenance records, verification and figure-generation code, and the validation-bootstrap procedure and
+results. Full training, labelling, selection and image-evaluation code, configurations and original start manifests
+are not included, limiting independent training reproduction (METHOD §12). The repository's demonstration images use
+separately credited openly licensed sources.
 
 ## Related work
 
