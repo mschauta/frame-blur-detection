@@ -1,8 +1,10 @@
 # Evidence and evaluation plan
 
-Status: proposed protocol, not executed. Creating this file does not run inference, inspect held-out predictions,
-collect new human labels, or start training. It does not retroactively make the earlier exploratory work preregistered.
-The current native-frame results remain agreement with retained teacher labels.
+Status: the fixed seven-group evaluation in Sections 2–4 was completed on 7 October 2026; follow-up studies in
+Section 5 remain pending. [Results](heldout/RESULTS.md) and [execution notes](heldout/EXECUTION.md) report all six
+checkpoints. The instructions below preserve the pre-scoring plan; the execution notes identify implementation
+changes and prior metadata access. This record does not retroactively preregister historical work. Native-frame
+metrics remain agreement with retained teacher labels, and no new human labelling or training was performed.
 
 ## 1. Evidence completed without a new model run
 
@@ -20,7 +22,7 @@ checksums, without image decoding. Neither check runs the held-out experiment be
 
 ## 2. Lock a finite evaluation before accessing predictions
 
-The proposed evaluation covers the existing seven-group internal test partition in the frozen index. The documented
+The completed evaluation covers the existing seven-group internal test partition in the frozen index. The documented
 frame counts are 3,296 reference-sharp and 3,296 reference-blurred rows; both native-frame classes are teacher-derived.
 Verify the actual frozen frame counts and group assignments against the index before execution.
 Also include the already capped synthetic-photo test partition, expected to contain 2,000 originals with one fixed
@@ -52,9 +54,9 @@ integrity audit, not a reason to adjust a test selection after seeing its model 
 
 ## 3. Run without competing with active labelling
 
-Keep this stage queued while the existing GPU labelling job is active. Do not stop that job, alter its configuration,
-launch a second GPU workload, or silently substitute a long CPU evaluation. Use a separate writable run directory;
-the source projects, database and frozen training runs remain inputs.
+The user stopped the competing GPU job and made the GPU available before this stage. The evaluation then used
+a separate writable run directory; the source projects, database and frozen training runs remained inputs. Future
+evaluations should likewise have an available GPU window.
 
 The local draft `tools/test_split.py` is a starting point for review, not a ready command to invoke unchanged. Its
 top-level code accesses test confidence labels, creates output directories and uses CUDA and cached scores. Before
@@ -67,8 +69,8 @@ before test inference. Then process one checkpoint at a time using the documente
 fixed batch size 8. Preserve the deterministic evaluation masks from the original configuration; do not replace them
 with all-valid masks or re-encode native frames. There is no test-time augmentation or per-test threshold calibration.
 
-The planned upper bound is six checkpoints times 6,592 native frames plus 4,000 fixed photo variants: 63,552 image
-scores, subject to the verified frozen counts. Save scores in chunks, preserving their full numeric precision.
+The verified completed count is six checkpoints times 6,592 native frames plus 4,000 fixed photo variants:
+63,552 image scores. Save scores in chunks, preserving their full numeric precision.
 A resumed job may fill missing scores for the same manifest; it must not reuse a cache with different weights,
 inputs, masks, precision or evaluator code. Failed, missing or non-finite scores remain visible and block an unqualified
 complete-result claim; they are not silently removed from denominators.
@@ -129,6 +131,15 @@ roughly 22.7 GPU-hours for one 100-epoch run on the measured setup; it is an est
 They are therefore separate research stages, not necessary consequences of correcting the repository's wording.
 
 The current defensible contribution remains the documented recipe and scoped empirical comparison: the published
-rounded, signed mesh residual alone reaches validation discrimination close to the RGB and grayscale runs on the
+rounded, signed mesh residual alone reaches validation and internal-test discrimination close to the RGB and grayscale runs on the
 examined corpus. Residual-domain learning, blur detection and VLM supervision have prior work listed in the README.
 This plan adds neither a priority claim nor new evidence for statistical equivalence or universal detection.
+
+## Completion notes
+
+The runner checked the frozen index and current input/cache hashes. The separate selection hash was independently
+rechecked against the study record; the executed v1 runner did not check it itself. The public execution record
+identifies the pinned current synthesiser, model source, software, validation thresholds and full-precision score
+checksums. The v1 source is archived beside the maintained runner, whose subsequent resume checks were verified on
+CPU. No test score was used to change a checkpoint, threshold or inclusion rule. Historical test non-use cannot be
+independently established from these records.

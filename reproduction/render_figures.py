@@ -6,6 +6,8 @@ inference, or image editing is performed. See README.md and codec_criterion.json
 
 import csv
 import html
+import json
+import math
 import re
 from pathlib import Path
 
@@ -49,6 +51,40 @@ def published_metrics():
     if [r[0] for r in rows] != ["RGB", "grayscale", "edge fingerprint"]:
         raise ValueError("Expected the three published epoch-99 rows")
     return rows
+
+
+def heldout_completed():
+    """Change the status only for the complete published six-checkpoint report."""
+    path = ROOT / "reproduction" / "heldout" / "heldout_results.json"
+    if not path.exists():
+        return False
+    report = json.loads(path.read_text(encoding="utf-8"))
+    cohort = report.get("cohort", {})
+    expected_counts = {"frames": 6592, "sharp_frames": 3296, "blurred_frames": 3296,
+                       "video_groups": 7, "photo_recipes": 4000, "photo_originals": 2000}
+    if any(cohort.get(key) != value for key, value in expected_counts.items()):
+        raise ValueError("Held-out report does not describe the complete frozen test cohort")
+    expected_models = {"rgb_ep099", "gray_ep099", "p99_ep099",
+                       "rgb_ep073", "gray_ep058", "p99_ep053"}
+    models = report.get("models", {})
+    if set(models) != expected_models:
+        raise ValueError("Held-out report must include all six fixed checkpoints")
+    for key, model in models.items():
+        expected_key = f"{model.get('input')}_ep{int(model.get('epoch', -1)):03d}"
+        role = "primary" if model.get("epoch") == 99 else "secondary"
+        if key != expected_key or model.get("selection_role") != role:
+            raise ValueError("Held-out checkpoint identity or selection role is inconsistent")
+        if any(not re.fullmatch(r"[0-9a-f]{64}", model.get(field, ""))
+               for field in ("weights_sha256", "score_sha256", "score_sidecar_sha256")):
+            raise ValueError("Held-out checkpoints require completed-score provenance hashes")
+        for section in ("video_cluster_bootstrap", "photo_original_bootstrap"):
+            for metric in ("auc", "sharp_kept_r95", "blurred_caught_r95"):
+                estimate = model.get(section, {}).get(metric, {}).get("estimate")
+                if not isinstance(estimate, (int, float)) or not math.isfinite(estimate) or not 0 <= estimate <= 1:
+                    raise ValueError("Held-out checkpoint metrics are incomplete or invalid")
+        if len(model.get("per_video", [])) != 7 or len(model.get("leave_one_video_out", [])) != 7:
+            raise ValueError("Held-out report requires all seven group and sensitivity results")
+    return True
 
 
 COPY = {
@@ -105,6 +141,12 @@ COPY = {
 
 def infographic(language):
     c = COPY[language]
+    footer = list(c["footer"])
+    if heldout_completed():
+        footer[0] = {
+            "en": "Internal 7-group test completed: reproduction/heldout/RESULTS.md. External sets also selected checkpoints.",
+            "hu": "A 7 csoportos teszt elkészült: reproduction/heldout/RESULTS.md. A külső anyagokon checkpointot is választottunk.",
+        }[language]
     s = SVG(1400, 1120, c["title"], c["reference"])
     s.text(40, 65, c["title"], 43, weight="700")
     s.text(40, 107, c["subtitle"], 23, MUTED)
@@ -133,7 +175,7 @@ def infographic(language):
     s.text(40, 903, c["reading"], 21, COLORS[0], "700")
     s.lines(40, 940, c["left"], 22, step=29)
     s.lines(731, 940, c["right"], 22, step=29)
-    s.lines(40, 1072, c["footer"], 17, step=21)
+    s.lines(40, 1072, footer, 17, step=21)
     s.save(ROOT / "figures" / ("hungarian.svg" if language == "hu" else "frame_blur_detection_infographic.svg"))
 
 

@@ -65,7 +65,7 @@
 <text x="731" y="969" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">A residual textúrát és artefaktumokat is tartalmaz.</text>
 <text x="731" y="998" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Az ideális I − K súlyozott diszkrét Laplace-operátor.</text>
 <text x="731" y="1027" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">A kerekítés és a floor korlátozza a skálainvarianciát.</text>
-<text x="40" y="1072" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">A 7 csoportos belső teszt még nincs kiértékelve. A külső anyagokon checkpointot is választottunk.</text>
+<text x="40" y="1072" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">A 7 csoportos teszt elkészült: reproduction/heldout/RESULTS.md. A külső anyagokon checkpointot is választottunk.</text>
 <text x="40" y="1093" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">L = 0: nincs hozzáadott blur; az eredeti fotó ettől még lehet elmosódott vagy defókuszos.</text>
 <text x="40" y="1114" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">Generált SVG: reproduction/render_figures.py • Részletes definíciók és korlátok: METHOD.md</text>
 </g>

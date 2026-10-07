@@ -3,7 +3,7 @@
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The reported
 100-epoch runs use a fixed, narrow, people-centred snapshot (37 processed video files, representing 36 unique video groups: one file
-duplicates another under a different name) and its validation split; universality is the aim, not yet a demonstrated
+duplicates another under a different name) and its validation and seven-group test splits; universality is the aim, not yet a demonstrated
 property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
 
@@ -21,10 +21,11 @@ This page summarises the approach and the results.
   establish an objective, source-independent sharpness ground truth.
 - **The cost is asymmetric.** A blurred frame accepted as sharp is the expensive error. The main figure is therefore the
   share of sharp frames that survive a threshold strict enough to catch 95% or 98% of the blurred frames.
-- **Synthetic anchors use construction labels.** For the synthetic-anchor task, an original photo (`L = 0`) is assigned
-  to the sharp class by construction: no blur has been added. It may still contain native motion blur or defocus. A
-  teacher disagreement with this label is not proof of teacher error. Native frames use filtered VLM labels alongside
-  the independently defined synthetic anchors; the student is therefore partly teacher-supervised (METHOD §1, §4, §6).
+- **Sharp means acceptable composition, not every region in focus.** The original photos are accepted as sharp anchors
+  for this task, including deliberate background defocus. At `L = 0`, no synthetic blur has been added and the teacher
+  does not override that assignment: the intended lesson is that a soft background alone should not reject an otherwise
+  usable composition. This construction label does not independently verify every original's usability or prove a
+  teacher error. Native frames use filtered VLM labels alongside these independently defined anchors (METHOD §1, §4, §6).
 - **Limited human judgement.** People shaped and tested the prompts, inspected blur ladders and filtered the small 4K
   anchor set by hand; native-frame class labels come from the VLM (METHOD §3, §4.1).
 
@@ -38,6 +39,13 @@ This page summarises the approach and the results.
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
 | model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
+
+The fingerprint was the starting representation. Its purpose is to direct learning towards **blur-related edge
+patterns**—thickening, repeated contours, and signed geometry indicating blur orientation—while removing colour and
+attenuating smooth image content. The intended decision also distinguishes degradation of the relevant subject from
+acceptable background defocus. Residuals retain spatial structure and texture, so they can still encode object and
+scene information. These are design goals; the current metrics do not identify the cues learned or validate subject /
+background separation (METHOD §1, §7–8).
 
 ### Why the photos go through video coding
 
@@ -82,7 +90,7 @@ Last epoch (epoch 99):
 | grayscale | 0.942 | 83.1% / 70.0% / 52.1% | 0.993 |
 | edge fingerprint | 0.949 | 83.1% / 73.9% / 58.2% | 0.990 |
 
-On the held-out photos (exact injected blur length, 2,000 sharp and 2,000 blurred) every run reaches an AUC of at least 0.999 at every
+On the held-out photos of the validation split (exact injected blur length, 2,000 sharp and 2,000 blurred) every run reaches an AUC of at least 0.999 at every
 epoch: separation of the two chosen synthetic extremes is nearly perfect on these photos; the native-frame task is
 harder on the evaluated material.
 
@@ -128,7 +136,31 @@ On the training frames every input keeps improving to the end (frame AUC 0.993�
 unseen videos the curves flatten after the third pass; the gap grows to 19–20 points. None of the models reaches 100% on
 its own training frames.
 
-## Evaluation on material outside the training data
+## Internal seven-group test
+
+The fixed test partition has now been evaluated: **6,592 frames** (3,296 per teacher-derived class) from **seven video
+groups**, plus **4,000 fixed synthetic recipes** from 2,000 paired photo originals. All six published checkpoints were
+scored once; epoch 99 remains the primary comparison. Each model uses its unchanged published validation threshold,
+so r95 is the validation target and the realised test recall is reported separately.
+
+| input | frame AUC [95% interval] | sharp kept at fixed r95 [95% interval] | blurred caught at fixed r95 [95% interval] |
+|---|---|---|---|
+| RGB | 0.952 [0.907, 0.961] | 68.7% [42.0, 75.2] | 96.5% [94.3, 97.4] |
+| grayscale | 0.953 [0.949, 0.965] | 77.3% [70.7, 82.1] | 95.3% [94.4, 97.5] |
+| edge fingerprint | 0.948 [0.919, 0.956] | 75.5% [59.7, 80.1] | 94.3% [93.6, 96.5] |
+
+The intervals use 2,000 paired whole-video-group bootstrap draws. The largest group supplies **63.8%** of the frames;
+the full report also gives equal-group mean operating points, all seven group-specific results, leave-one-group-out
+sensitivities, paired differences and secondary checkpoints. These are teacher-reference results for fixed models,
+with only seven groups and one training run per input. They do not establish model equivalence or independent human
+accuracy. Synthetic-photo metrics describe the construction labels separately.
+
+Read the [full test results](reproduction/heldout/RESULTS.md) and
+[execution record](reproduction/heldout/EXECUTION.md). An earlier evaluator had accessed test metadata but stalled
+without producing scores; historical non-use is not independently established. This test is separated from training
+and validation, but is not presented as a retrospectively preregistered experiment.
+
+## External evaluation and selection sets
 
 Every model is evaluated at its own operating points: the thresholds that catch 90, 95 or 98% of the blurred frames of
 its validation split. The epoch-99 comparisons below use the fixed final epoch and validation-derived thresholds,
@@ -180,8 +212,8 @@ three inputs. The demo-frame row measures agreement with the teacher.
 
 **Limits of these results.** One training run per input (one seed). The validation bootstrap above covers video-group
 sampling conditional on these saved models; external-set differences and training-seed variation are not covered.
-The held-out test split of the labelled videos (7 video groups) has not been evaluated yet; the
-[fixed evaluation protocol](reproduction/EXPERIMENT_PLAN.md) defines that remaining experiment. Checkpoints chosen on
+The seven-group internal test is now [reported separately](reproduction/heldout/RESULTS.md), with its own
+conditional group-bootstrap intervals and unchanged validation thresholds. Checkpoints chosen on
 the external sets above turn them into selection data, so final claims about such a checkpoint need material that was
 not used to choose it.
 
@@ -321,8 +353,8 @@ ConvNeXt-Small (ImageNet-pretrained) to stride 16, about 34 M parameters; each f
 (input type, epoch, thresholds). The last epoch is the main result. The three further checkpoints (RGB epoch 73, grayscale epoch 58,
 fingerprint epoch 53) were chosen on the external evaluation sets as the stricter alternatives: on the GoPro pairs and the
 demo frames they catch more blur than epoch 99, at the cost of keeping fewer sharp photos. Because they were chosen on
-these sets, the sets are selection data for them; the held-out test split has not yet been evaluated and will be
-reported separately after a one-time evaluation of the chosen checkpoints. The files are stored with Git LFS
+these sets, the sets are selection data for them. All six are now included in the
+[separate internal-test report](reproduction/heldout/RESULTS.md), with the three epoch-99 models kept primary. The files are stored with Git LFS
 (`git lfs install` before cloning). The weights were trained on
 non-public material (METHOD §12).
 
@@ -331,8 +363,9 @@ non-public material (METHOD §12).
 The training data is **not published**: it was built from copyrighted videos and photographs. No images, frames, crops or
 derived images from that dataset are published. Published are the method, selection and labelling rules, reported
 metrics, inference code and trained weights. The [public evidence package](reproduction/README.md) includes aggregate
-codec/split/provenance records, verification and figure-generation code, and the validation-bootstrap procedure and
-results. Full training, labelling, selection and image-evaluation code, configurations and original start manifests
+codec/split/provenance records, verification and figure-generation code, validation-bootstrap results, and the
+[held-out evaluator, analysis and execution record](reproduction/heldout/README.md). Full historical training, labelling,
+selection and image-measurement code, training configurations and original start manifests
 are not included, limiting independent training reproduction (METHOD §12). The repository's demonstration images use
 separately credited openly licensed sources.
 
@@ -380,14 +413,24 @@ The references below position the components of this study; their tasks, dataset
   an auxiliary RGB channel, while the fingerprint run here uses the signed residual as its image input. VLMs are
   downstream consumers in that pipeline.
 
-The contribution evaluated here is the combination of filtered VLM supervision on native video frames,
-measurement-based selection of sharp frames, synthetic blur anchors passed through H.264, and a comparison of RGB,
-grayscale and signed residual inputs. The specific empirical finding is that the fixed, signed mesh residual in its
-published bfloat16-rounded implementation, used as the sole image channel, reaches a validation discrimination level
-close to the full-image runs on this material. An exact float32 residual was not tested in these runs.
-The ideal residual is algebraically a fixed weighted discrete Laplacian (METHOD §7). Residual-domain learning,
-blur detection and VLM supervision each have precedents; these results establish neither
-priority for the combination nor universal blur detection or statistical equivalence of the three inputs.
+This study contributes a documented experimental protocol for comparing **RGB, grayscale and a signed mesh residual**
+on heterogeneous native frames within this people-centred corpus. It combines filtered VLM supervision,
+measurement-guided sharp-frame selection and H.264-encoded synthetic blur anchors. The native-frame branch is
+task-specific hard-label teacher–student transfer: the CNN learns retained Qwen labels, while the synthetic branch
+supplies independently defined construction labels.
+
+The principal empirical finding, on both validation and the separate seven-group internal test, is that the published
+bfloat16-rounded residual, used as the **sole image channel alongside the validity mask**, supports teacher-reference
+blur discrimination close to the full-image runs.
+This establishes operational usefulness of residual-only input under the evaluated supervision protocol. It compares
+representations and their training outcomes, rather than identifying the minimum image information needed for blur
+decisions: the ideal raw residual is invertible up to a constant, and rounding, normalisation and companding further
+distinguish the actual input (METHOD §7).
+
+Only these three representations were trained. An unsigned-residual control is still needed to test whether retaining
+sign improves discrimination, and an exact-float32 control is needed to isolate rounding. Residual-domain learning,
+blur detection and VLM supervision have precedents; this empirical contribution does not claim historical priority,
+universal detection or statistical equivalence of the inputs.
 
 ## Related work by the author
 

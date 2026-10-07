@@ -27,6 +27,13 @@ The intended decision is **source-independent**: the task is to find acceptably 
 than only the best frames within one video. This is an operational goal, not a claim that perceptual sharpness has an
 objective, viewing-condition-independent boundary. Low-quality material is intended to be filtered out.
 
+**Composition-aware sharpness is the target.** A deliberately defocused background should not by itself make a usable
+image blurred; sharpness of the relevant subject and the role of soft regions in the composition matter. The original
+photo anchors are accepted compositions for this task, including intentional defocus, rather than declarations that
+every pixel is physically sharp. Their labels are intended to teach this tolerance alongside rejection of additional
+global camera blur. No independent subject/background annotations or stratified evaluation establish how fully the
+trained models achieve this distinction.
+
 The cost of the two errors is **asymmetric**. A blurred frame accepted as sharp is the expensive error; rejecting some
 sharp frames is acceptable. All evaluation is built around this (Section 9).
 
@@ -34,14 +41,19 @@ sharp frames is acceptable. All evaluation is built around this (Section 9).
 VLM teacher, and the detector is trained against the retained labels. The recipe does not reproduce every teacher
 decision: only `sss` (all three questions say sharp) and `bbb` / `bsb` (Q1 sees blur) are used; uncertain and
 not-sharp-but-not-blurred combinations are left out. A separate, non-learned measurement ranks the sharp frames to
-reduce suspected label noise. The photos provide additional labels defined by the injected blur length: L = 0 is
-assigned to the sharp class by construction, even when the teacher disagrees. This does not prove that the original
-photo is objectively sharp or that the teacher is wrong. Frame metrics are therefore agreement with the retained
+reduce suspected label noise. The photos provide additional labels defined by the accepted original composition and
+injected blur length: L = 0 is assigned to the sharp class by construction, even when the teacher responds to intentional
+defocus. The teacher does not override the intended anchor label. This does not independently verify every original's
+usability or prove that the teacher is wrong. Frame metrics are therefore agreement with the retained
 teacher labels, not independently verified accuracy (Section 9).
 
 **How the experiment evolved.** The experiment started as training a detector on the blur fingerprint alone (the edge
-residual of Section 7), on the hypothesis that a fine-scale high-pass representation retains useful blur patterns while
-attenuating smooth image content. It also contains texture, noise and coding artefacts. Its results, in particular that
+residual of Section 7). The intention was to favour blur-related edge morphology—thickening, repeated contours and
+signed geometry indicating blur orientation—over colour and appearance cues such as an object's colour. Another
+intended behaviour is to distinguish degradation of the relevant subject from acceptable background defocus.
+Removing colour and attenuating smooth content restricts the representation, but does not eliminate object or scene
+structure: the residual retains spatial layout and texture, as well as noise and coding artefacts. These are learning
+hypotheses, not a demonstration of the features used by the network. Its results, in particular that
 the fingerprint alone reached a high level, prompted the comparison with the
 plain RGB image and with a grayscale image: grayscale vs RGB differ in colour; fingerprint vs grayscale mainly in the
 frequency band, but also in the encoding (linear residual vs sRGB-encoded luminance), the normalisation, the companding
@@ -454,8 +466,9 @@ frames from each group), so group identity alone does not predict the label in t
 | validation | 3,301 | 3,301 | 11 |
 | test | 3,296 | 3,296 | 7 |
 
-The reported training comparisons use the 11-group validation split. The **7-group held-out test split has not yet
-been evaluated**; its results will be reported after the checkpoints and evaluation procedure have been fixed. External
+The reported per-epoch training comparisons use the 11-group validation split. The **7-group held-out test split
+has now been evaluated** once with all six published checkpoints and their unchanged validation thresholds; its
+[separate results](reproduction/heldout/RESULTS.md) and [execution record](reproduction/heldout/EXECUTION.md) are released. External
 sets used to choose checkpoints are selection data for those checkpoints, not an untouched final test (Section 9).
 
 **Frames as pairs.** Within a shot, sharp and blurred frames share scene, light, camera, codec and people; what differs is
@@ -484,10 +497,12 @@ Validation and test are each capped to 2,000 originals, retaining one sharp and 
 (2,000 per class). The 11,313 other held-out originals are omitted from the capped index, not returned to training.
 Synthesised variants inherit the original's split. The three published runs use the same index (Section 10).
 
-**What the photos stand for, and why they are blurred.** An original photo (L = 0) is assigned to the sharp class by
-construction; the 1–3 px variants extend this anchor to a small injected-blur tolerance (Section 6.1). The teacher's
-label does not override these assignments. L = 0 measures the absence of added synthetic blur, not the absence of
-pre-existing motion blur or defocus. The photos are blurred for two reasons. First, each construction-sharp photo gets
+**What the photos stand for, and why they are blurred.** An original photo (L = 0) is accepted as a sharp composition
+anchor by construction, including deliberate background defocus; the 1–3 px variants extend this anchor to a small
+injected-blur tolerance (Section 6.1). The teacher's label does not override these assignments because sensitivity to
+an intentionally soft region need not match the task's composition-level acceptance criterion. This label expresses
+the intended training target, not an independent usability audit. L = 0 measures the absence of added synthetic blur,
+not the absence of pre-existing motion blur or defocus. The photos are blurred for two reasons. First, each construction-sharp photo gets
 a counterpart with a known, large injected blur, so the two patterns share the same original content. Second, the
 synthetic variants supply controlled uniform straight-motion patterns in twelve directions and four blurred lengths,
 complementing the less controlled blur of the video frames.
@@ -593,7 +608,7 @@ edge-only layer. A doubled contour or parallel bands along the motion direction 
 negative lines. The exact linear operator above describes the ideal residual; the published rounded implementation
 is described below.
 
-**Why the sign matters.** At an edge, `d` is negative on the darker side and positive on the brighter side. The sign of
+**What the sign encodes.** At an edge, `d` is negative on the darker side and positive on the brighter side. The sign of
 a line therefore carries the polarity of the edge (which side is brighter). The width and spacing of signed structures
 can provide cues to blur extent and orientation, depending on the original structure and blur kernel; no exact kernel
 recovery is established here. The temporal direction of the motion (from A to B or from B to A) cannot be
@@ -645,7 +660,7 @@ Residual inputs, local blur features and normalisation each have prior work; non
 
 The specific empirical contribution is the comparison of the fixed, signed mesh residual as the sole image channel
 with RGB and grayscale under the documented filtered VLM supervision, frame selection and H.264-encoded synthetic
-anchor recipe. On the reported validation material, the residual run reaches a discrimination level close to the
+anchor recipe. On the reported validation and seven-group internal-test material, the residual run reaches a discrimination level close to the
 full-image runs. This result applies to the published bfloat16-rounded input; an exact float32-residual model has not
 been tested. It supports the usefulness of this representation on this dataset, not priority for the component
 ideas or their combination, statistical equivalence of the runs, or universal blur detection. Further related work and
@@ -662,9 +677,11 @@ blurred region matters. The cell grid is the output sampling (16 px), not a vali
 segmentation. Cells covered less than half by valid pixels are excluded.
 
 **Loss.** Image-level binary cross-entropy plus a dense term (weight 0.5) on cells that contain edges: on photos every
-edge cell carries the synthetic image label, because the injected kernel is global. This is a training assumption,
-not independently verified local sharpness ground truth; an L = 0 original may already have blurred regions. Frames
-have no dense term (where the blur is in a frame is unknown).
+edge cell carries the synthetic image label, because the injected kernel is global. Construction-sharp photo cells
+inherit the accepted composition label, including cells in an intentionally defocused background. This is a training
+assumption, not independently verified local sharpness ground truth. There are no explicit subject/background labels;
+the local grid is not validated as a semantic or physical blur segmentation. Frames have no dense term (where the blur
+is in a frame is unknown).
 
 **Sampling.** Each epoch nominally draws 12,000 samples from four strata: sharp frames, blurred frames, sharp photos and blurred
 photos, 3,000 each. Inside a stratum every sample is equally likely and drawn without repetition until the stratum is
@@ -772,11 +789,27 @@ generalisation to unseen videos.
   unseen-domain performance. The pairwise difference intervals for AUC and recalibrated retention at 95% and 98%
   recall include zero; this is not an equivalence test. The repeatedly inspected validation cohort is not an untouched
   test set. No new inference or training was run for this analysis.
+- **Internal test.** The frozen seven-group split contains 6,592 frames, balanced to 3,296 per teacher-derived class,
+  and 4,000 fixed photo recipes from 2,000 paired originals. The three epoch-99 models remain primary; the three
+  externally selected earlier checkpoints are secondary. Published validation r90/r95/r98 thresholds are unchanged
+  for test scoring and every bootstrap draw (`p >= threshold` means blurred). CUDA bfloat16 autocast and batch size 8
+  follow the historical inference path. All shape-bucket tails are retained, with no test-time augmentation. Native
+  frames are not re-encoded; fixed photo variants and evaluation masks are cached once for all six models. Current
+  originals, masks, prepared arrays, pinned trainer sources and weights are hashed. Current synthesis includes the
+  later encoder-retry and ID3 workaround, so byte-identical historical photo pixels are not asserted. Public/trainer
+  score agreement was exactly zero on eight openly licensed demos per input before test scoring.
+  The [aggregate analysis](reproduction/heldout/README.md) uses 2,000 shared whole-video-group bootstrap draws, seed
+  20261007, for pooled AUC, fixed-threshold rates and paired primary differences. It also reports per-group rates,
+  equal-group mean operating points, seven leave-one-group-out sensitivities and the frozen measurement-agreement
+  subset. Photo intervals resample paired originals, without accounting for source-album dependence. One group
+  supplies 63.8% of native frames; seven-cluster intervals have limited population coverage and condition on one
+  trained model per input. An earlier stalled script read test metadata but produced no scores; historical non-use
+  is not independently established. The complete execution history and source versions accompany the results.
 - **External evaluation and selection sets.** The README reports the GoPro pairs, real-frame sets and photo blur
   ladders separately from the internal train / validation / test split. The alternative checkpoints were chosen using
   these external sets; they are therefore selection data for those checkpoints. Their scores are descriptive external
-  evaluations, not an untouched final-test estimate for the selected alternatives. The 7-group internal test split has
-  not yet been evaluated. Thresholds are taken from the internal validation data, unless explicitly stated otherwise.
+  evaluations, not an untouched final-test estimate for the selected alternatives. The separate 7-group internal
+  test is now reported for all six checkpoints. Thresholds are taken from internal validation, unless stated otherwise.
 - **Cross-test.** Every model is also given the finished input of the other two models, its own input processing
   bypassed and nothing converted (channels only copied or selected to fit the first layer), on the same test material
   and at its own operating points. This measures transfer and sensitivity to a changed input representation and
@@ -891,8 +924,10 @@ The dataset is **not published**: it was built from copyrighted videos and photo
 derived images from that dataset (edge images, heat maps) are published. Published are the method, reported metrics,
 inference code and trained weights. The [public evidence package](reproduction/README.md) supplies codec medians and
 definitions, aggregate split/provenance records, an arithmetic verifier, reproducible SVG summaries and a validation
-bootstrap procedure with its aggregate results. The GoPro mirror's public image-file identities are recorded separately.
-Full start manifests, training, labelling, selection and image-measurement/evaluation code, and complete configurations
-are not included; the aggregate package does not reproduce private measurements or training. This limits independent
+bootstrap procedure with its aggregate results. The held-out runner, analysis, aggregate results and sanitised
+execution record are also released; they require private source inputs and trainer dependencies for image-level
+reproduction. The GoPro mirror's public image-file identities are recorded separately.
+Full historical start manifests, training, labelling, selection and image-measurement code, and complete training
+configurations are not included; the aggregate package does not reproduce private measurements or training. This limits independent
 reproduction of the reported training results. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
 the changes made are listed next to them.

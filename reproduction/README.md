@@ -1,9 +1,9 @@
 # Aggregate evidence and reproducibility
 
 This package exposes the arithmetic behind the exploratory codec choice and the fixed study's sample counts. It contains
-no source images, private paths, private photo/video names, private frame identifiers or held-out predictions. The three
-video labels below are anonymous group aliases. The reported metadata were checked against local records without running
-training or a held-out evaluator.
+no source images, private paths, private photo/video names, private frame identifiers or per-image predictions. The three
+video labels below are anonymous group aliases. The codec/split/provenance checks use saved local records. The
+separate [held-out package](heldout/README.md) now includes one completed fixed-checkpoint evaluation and its aggregates.
 
 Run with Python 3.10 or later; no packages, dataset, model weights or GPU are required:
 
@@ -129,6 +129,7 @@ blur/sharp pairs. Public mirror member names and byte checksums are supplied to 
 redistributing images. These are public evaluation-file identities, separate from private training-source identifiers.
 Correspondence to the official 1,111-pair test split and its blur variant is not established.
 
-The [experiment plan](EXPERIMENT_PLAN.md) describes the remaining evaluation and ablation work. This aggregate package
-does not supply an independently adjudicated accuracy estimate, new training runs or a held-out result. Its validation
-intervals have the conditional scope described above.
+The [experiment plan and completion notes](EXPERIMENT_PLAN.md) distinguish the completed internal test from
+pending human-reference, multi-seed, domain and ablation studies. [Test results](heldout/RESULTS.md) include fixed-threshold
+recall, conditional group-bootstrap intervals and group sensitivity analyses. No new training was performed; the package
+does not supply independently adjudicated perceptual accuracy. Validation intervals retain the scope described above.
