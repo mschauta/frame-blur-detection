@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "prepared_utc": "2026-10-07T03:01:30.607188+00:00",
+  "prediction_parameters_locked_utc": "2026-10-07T03:02:04.830098+00:00",
+  "completion_progress_file_modified_utc": "2026-10-07T03:17:44.077666+00:00",
+  "report_generated_utc": "2026-10-07T03:18:07.446410+00:00",
+  "inference_elapsed_seconds": 939.2318969999906,
+  "scores": 63552,
+  "frames_per_checkpoint": 6592,
+  "photo_recipes_per_checkpoint": 4000,
+  "video_groups": 7,
+  "private_locked_manifest_sha256": "bf70a235883ec9ff6c8bdfd7d7dba8083c9975794aeb965b351aa37c2aae9095",
+  "index_sha256": "1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810",
+  "measurement_agreement_membership_sha256": "533b3fc6aaa640c2e06bb203e536a54fccb73aee357d91f844767fe42ccd34b7",
+  "frame_selection_sha256": "5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003",
+  "selection_hash_check": "Separately rechecked against the frozen study record during execution; the executed v1 runner did not itself verify selection bytes.",
+  "executed_runner": {
+    "path": "executed_runner_v1.py",
+    "sha256": "89bf1e00d8ead9a0f465639109b42789f1f68ac8beb698a76bf92b38e096431c"
+  },
+  "public_inference_sha256": "4eb5b28ffdd32e693887d20233660b3ec48072c35327a6c155cb78577070d385",
+  "pinned_private_trainer_source_sha256": {
+    "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "data.py": "0ec747b11e1c77c48c534814d10c148ede61067576dc5c23c03004c7c01f091a",
+    "synth.py": "d93ad7d3b1d20d1ec4fca5eef1487b0fc607ac9c6852b654cf57c2c715777b45",
+    "fingerprint.py": "d2f628f72915c4722ed6db466a4e81dbeb79aad8673814a80f56d4ce2aebd9ec",
+    "model.py": "21fd32510b485903cd51764bc8228ddc61337893bdc0a3ad6a2e6d3f7e6c8242"
+  },
+  "software": {
+    "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+    "torch": "2.14.0+cu130",
+    "numpy": "2.5.2",
+    "ffmpeg": "ffmpeg version 7.1.1-essentials_build-www.gyan.dev Copyright (c) 2000-2025 the FFmpeg developers",
+    "ffmpeg_sha256": "b90225987bdd042cca09a1efb5e34e9848f2d1dbf5fbcd388753a44145522997",
+    "torchvision": "0.29.0+cu130",
+    "cuda": "13.0",
+    "cudnn": 92400
+  },
+  "prediction_parameters": {
+    "device": "NVIDIA GeForce RTX 5090",
+    "precision": "CUDA bfloat16 autocast",
+    "batch_size": 8,
+    "memory_fraction": 0.7,
+    "score_comparator": "blurred iff p >= stored validation threshold",
+    "test_time_augmentation": false,
+    "implementation": "Pinned trainer inference, matching the historical GPU-autocast path; public exported weights"
+  },
+  "synthetic_recipe_config": {
+    "synth_sharp_L": [
+      0.0,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "synth_blur_L": [
+      16.0,
+      20.0,
+      24.0,
+      30.0
+    ],
+    "synth_mask_share": 0.5,
+    "frames_mask_share": 0.5
+  },
+  "demo_implementation_check": {
+    "samples_per_input": 8,
+    "finite": true,
+    "comparisons": [
+      {
+        "input": "rgb",
+        "max_public_vs_training_score_difference": 0.0
+      },
+      {
+        "input": "gray",
+        "max_public_vs_training_score_difference": 0.0
+      },
+      {
+        "input": "p99",
+        "max_public_vs_training_score_difference": 0.0
+      }
+    ],
+    "peak_allocated_bytes": 2980985856,
+    "demo_file_sha256": [
+      "69d6e3747e72b09d23583c25b594cdbd407c33bf625eca838b81ccb35ff165b8",
+      "f86d285d79516eeca4980ce125b829f120937ef2dcd9215f6f862737d2332dd9",
+      "beb27f3224e83c60ef370f5cb16aa331666fbc616294a36147e7081361e60b67",
+      "c4f692b0402225a716c86e4247c1afacb8515feb667b123811bf10d1bdcb5550",
+      "ae1a3e686a600088686e9810b4f562cb1e669e0d98a571d36091e1ba33799246",
+      "930ac2e638182ef42393c86b9ccfed63dc622dbe98ba9bb09a63dbe4e054c8e8",
+      "1deab61045e71b4fc87ecce465e097cdad1ed95320c1513d7df5a379abef88e3",
+      "174aa642fb61564f87830f403de323b7dc4fcd2fde3d7467d3faae377805ffb7"
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "rgb_ep099",
+      "input": "rgb",
+      "epoch": 99,
+      "weights_sha256": "dd0c2984f75958f980ac72829fb1ea763ca2ef9311559336f84530be4ea6c6e8",
+      "thresholds": {
+        "r90": 0.8852289999999999,
+        "r95": 0.019988000000000016,
+        "r98": 0.004074000000000003
+      },
+      "selection_role": "primary",
+      "score_sha256": "e71ede055b9ae53315f7edcef3dce82f31c9fea2a76e65c7dc6d9dd6dd48769a",
+      "score_sidecar_sha256": "095d3a57ba26b95a20f453b63f11189e51ba79ddf0630093324b2bf4ece6b09b",
+      "scores": 10592
+    },
+    {
+      "id": "gray_ep099",
+      "input": "gray",
+      "epoch": 99,
+      "weights_sha256": "3e416be6eeb10ea87001e1d6ebbc2360159fa1339e37115aebab4c888d84d04d",
+      "thresholds": {
+        "r90": 0.28088699999999905,
+        "r95": 0.013493000000000028,
+        "r98": 0.0027560000000000015
+      },
+      "selection_role": "primary",
+      "score_sha256": "563506a6ac0259a0914471e6186797a89eec076d2002a54b00ff4e1f2b534da0",
+      "score_sidecar_sha256": "aee481f7347e58e3dd28626aa8461816698ce874e42f49ca4430ee755980d0fb",
+      "scores": 10592
+    },
+    {
+      "id": "p99_ep099",
+      "input": "p99",
+      "epoch": 99,
+      "weights_sha256": "3da6b3a91ca65b4f5f6e5d2e810cdc2dd61ba4853191aea1755bf1dd4aec6a8b",
+      "thresholds": {
+        "r90": 0.8889409999999999,
+        "r95": 0.03227600000000004,
+        "r98": 0.005299000000000011
+      },
+      "selection_role": "primary",
+      "score_sha256": "02ee91c158a4cb75f8a128fc4d01e3e999a6daba8ea15bf7ff576c7934d6c4a5",
+      "score_sidecar_sha256": "9b5400bfcad21a39d6b976f8f2fb042de31cb92dadb42e5dfc7a4ea3d3ddf6a1",
+      "scores": 10592
+    },
+    {
+      "id": "rgb_ep073",
+      "input": "rgb",
+      "epoch": 73,
+      "weights_sha256": "526d61348527e18a51c64270e7de2e7eb878cf28c7de0ffe92f5f18b10cfc372",
+      "thresholds": {
+        "r90": 0.964986,
+        "r95": 0.10782600000000062,
+        "r98": 0.014945000000000009
+      },
+      "selection_role": "secondary",
+      "score_sha256": "80cebc0d13ffbb0810791ae5d33ce938b8321dfcc9b3cac7363e32f513668a44",
+      "score_sidecar_sha256": "882d977b3eed2b9835c101bb97f5fcf4914964190563402614f583d82ad6d093",
+      "scores": 10592
+    },
+    {
+      "id": "gray_ep058",
+      "input": "gray",
+      "epoch": 58,
+      "weights_sha256": "15ba6f52f5df5443072f83918b97536bbf88c7017caaa9b3d84cec4e235f7979",
+      "thresholds": {
+        "r90": 0.11224499999999998,
+        "r95": 0.03213500000000003,
+        "r98": 0.006372000000000005
+      },
+      "selection_role": "secondary",
+      "score_sha256": "b395cfb500e991663c99d7f8773a4488e108d59c426f6fa480da615b2d342d4d",
+      "score_sidecar_sha256": "218f07e43c18e22552460ff555eaba2213feb092a5eea08c55c613bf00884f90",
+      "scores": 10592
+    },
+    {
+      "id": "p99_ep053",
+      "input": "p99",
+      "epoch": 53,
+      "weights_sha256": "f251218fef650adfaac32635a4b86827334581a8de84c91e678ac93c2108b536",
+      "thresholds": {
+        "r90": 0.5697109999999999,
+        "r95": 0.132018,
+        "r98": 0.04905000000000004
+      },
+      "selection_role": "secondary",
+      "score_sha256": "2d291373f44ce6ca47374745472b7bf20bee7b883566f892083a34cff4c16850",
+      "score_sidecar_sha256": "db89ccf957daafc99b3baf1092a9f6c2e0908777f0a1f3953484eb8204bb9eb6",
+      "scores": 10592
+    }
+  ],
+  "privacy_safe_aggregate_hashes": {
+    "definition": "SHA-256 of newline-separated lowercase digests with a final newline. Source/mask digests are sorted without paths; cache digests retain frozen index order.",
+    "source_file_count": 8592,
+    "source_file_digest_list_sha256": "de031a1d311a225fe1c571028dee62a6db76d95842caef3717c18ff322c2e627",
+    "mask_file_count": 36,
+    "mask_digest_list_sha256": "5719554a2de58ee653c1bcea6d42f1212335157a1c2d55b72d8cba7470b1dc1d",
+    "prepared_cache_count": 10592,
+    "ordered_cache_digest_list_sha256": "0b7ee5ba4b8f4d0485e5d2de727ef3051c4619bb4495b1876a717e0c8790334a"
+  },
+  "threshold_source": "Published metadata, matching historical six-decimal validation-score quantiles; never recalibrated on test.",
+  "access_history": "An earlier unguarded test script was already stalled at Windows worker spawning. It had read test metadata but produced no scores. Historical non-use is not independently established.",
+  "execution_notes": [
+    "The user stopped the competing GPU workload before this evaluation; no training or teacher labelling was started.",
+    "The earlier stalled evaluator produced no saved predictions; it was stopped after its Windows worker-spawn stall was diagnosed.",
+    "All six published state dictionaries were verified tensor-for-tensor against their corresponding training checkpoints before test scoring.",
+    "Inference uses a pinned copy of the current trainer model implementing the historical CUDA bfloat16 path; no test-time augmentation or threshold fitting is performed.",
+    "Native frames are decoded, cropped and deterministically masked without additional re-encoding. Synthetic recipes are generated once from the pinned current synthesiser, then reused by all checkpoints.",
+    "The pinned current synthesiser includes encoder retries and an ID3-byte workaround added after some historical runs. This evaluation does not assert byte-identical historical synthetic pixels.",
+    "Index group/original identities are disjoint across train/validation/test; unknown near-duplicates and historical pixel immutability remain unverified.",
+    "The maintained runner adds resume-integrity checks after completion; the byte-exact executed v1 source is archived separately.",
+    "Private paths, image names, sample identifiers, per-image predictions and raw image/mask inventories are excluded from this record."
+  ],
+  "statistics": {
+    "draws": 2000,
+    "seed": 20261007,
+    "video_unit": "whole video group",
+    "photo_unit": "paired original",
+    "thresholds": "fixed validation thresholds"
+  },
+  "maintained_runner_sha256": "f72fe5f0799bc8e85513e4d2c86503c52e3ebfd931940a5ea32a3a58d97da264",
+  "analysis_script_sha256": "62d987957cea1a379a0d0db1f4394182bd2b41daad5b5c4fa1a958a7b139d06f",
+  "aggregate_results_sha256": "f473f87b727b596e2dc73f45df31b86c6d8ea14835d4f4b316ec8c7bd1785dd9",
+  "verification": {
+    "resume_guard_CPU_cases_passed": 12,
+    "score_provenance_invalid_cases_rejected": 7,
+    "direct_pairwise_all_model_group_LOO_metrics_agree_within": 1e-12,
+    "original_public_weights_modified": false
+  },
+  "public_artifact_hash_scope": "Maintained runner, analysis script and aggregate-result hashes identify published LF-normalised bytes. The executed v1 file remains byte-exact.",
+  "public_inference_repository_blob_sha256": "c097db6aa147496a615116d4cec6f413151f541f98e40ec53a8d2c0ea0145f5f",
+  "public_inference_hash_scope": "public_inference_sha256 records executed workspace file bytes; public_inference_repository_blob_sha256 records the Git-normalised source blob."
+}
