@@ -1,15 +1,15 @@
 # Frame Blur Detection
 
+![Frame Blur Detection poster](figures/frame_blur_detection_poster_en.png)
+
+[Magyar nyelvű poszter](figures/frame_blur_detection_poster_hu.png).
+
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The reported
 100-epoch runs use a fixed, narrow, people-centred snapshot (37 processed video files, representing 36 unique video groups: one file
 duplicates another under a different name) and its validation and seven-group test splits; universality is the aim, not yet a demonstrated
 property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
-
-![Frame Blur Detection infographic](figures/frame_blur_detection_infographic.svg)
-
-[Magyar nyelvű összefoglaló](figures/hungarian.svg).
 
 The full description of the material, the labelling, the training and the evaluation is in [METHOD.md](METHOD.md).
 This page summarises the approach and the results.
