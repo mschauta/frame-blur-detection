@@ -1,13 +1,16 @@
 """The blur detector and its three input types, for inference.
 
 A ConvNeXt-Small trunk up to stride 16, a 1x1 head that gives one logit per 16 px cell, and a masked log-sum-exp over
-the cells with a learnable sharpness r: the image is "blurred" if blur appears anywhere (METHOD.md, Section 8).
+the valid cells with a learnable sharpness r, normalised by the number n of valid cells: a differentiable soft
+maximum, not a logical "any cell" rule. A dominant local logit contributes approximately local - log(n) / r, so both
+the local score and the extent of a high-scoring region affect the image decision (METHOD.md, Section 8).
 
 Inputs (METHOD.md, Section 7), always followed by a validity-mask channel:
   rgb   the image, ImageNet-normalised
   gray  the linear-light luminance, sRGB-encoded, copied to 3 channels, ImageNet-normalised
-  p99   the edge fingerprint d = Y - K * Y (K = [3 10 3; 10 92 10; 3 10 3] / 144, Y linear luminance), divided by the
-        99.5th percentile of |d| (floor 1e-3) and companded as sign * sqrt(|.|)
+  p99   the edge fingerprint, based on d = Y - K * Y (K = [3 10 3; 10 92 10; 3 10 3] / 144, Y linear luminance)
+        with the bfloat16 rounding documented in fingerprint(); divided by the 99.5th percentile of |d| over valid
+        pixels of a 2 x 2 sub-grid (floor 1e-3) and companded as sign * sqrt(|.|)
 """
 
 from __future__ import annotations

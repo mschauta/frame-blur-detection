@@ -2,35 +2,41 @@
 
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The results so far
-come from a narrow, people-centred material (37 labelled videos) and its validation split; universality is the aim, not
-yet a demonstrated property. It is the first stage of a longer pipeline
+come from a narrow, people-centred material (37 processed video files, representing 36 unique video groups: one file
+duplicates another under a different name) and its validation split; universality is the aim, not yet a demonstrated
+property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
 
 ![Frame Blur Detection infographic](figures/frame_blur_detection_infographic.png)
+
+*In this visual summary, "37 labelled videos" counts files (36 unique video groups). The reconstruction statement
+refers to the ideal, unnormalised residual; the rounded, masked and normalised model input requires the qualifications
+in METHOD §7. The normalisation reduces scale dependence and includes a floor.*
 
 The full description of the material, the labelling, the training and the evaluation is in [METHOD.md](METHOD.md).
 This page summarises the approach and the results.
 
 ## Principles
 
-- **Sharpness is absolute and source-independent.** The task is not to find the best frames of a video, but frames that
-  are acceptably sharp whatever their source. Low-quality material is filtered out, never taught as acceptable.
+- **The target is source-independent acceptable sharpness.** The task is to find acceptably sharp frames across sources,
+  rather than just the best frames within each video. Selection filters aim to exclude unusable material; they do not
+  establish an objective, source-independent sharpness ground truth.
 - **The cost is asymmetric.** A blurred frame accepted as sharp is the expensive error. The main figure is therefore the
   share of sharp frames that survive a threshold strict enough to catch 95% or 98% of the blurred frames.
-- **Our definition, not the teacher's.** Frames are labelled by a frozen vision-language model, but the definition of
-  sharp is ours: an original photograph is always sharp, and where the teacher disagrees, the teacher is wrong. The
-  detector is not a distillation of the teacher's sharp / blurred decisions; the teacher's labels only help to sort
-  the frames into the two classes (METHOD §1, §4).
-- **Minimal human judgement.** People shaped and tested the prompts and inspected blur ladders; they did not label the
-  data (METHOD §4.1).
+- **Synthetic anchors use construction labels.** For the synthetic-anchor task, an original photo (`L = 0`) is assigned
+  to the sharp class by construction: no blur has been added. It may still contain native motion blur or defocus. A
+  teacher disagreement with this label is not proof of teacher error. Native frames use filtered VLM labels alongside
+  the independently defined synthetic anchors; the student is therefore partly teacher-supervised (METHOD §1, §4, §6).
+- **Limited human judgement.** People shaped and tested the prompts, inspected blur ladders and filtered the small 4K
+  anchor set by hand; native-frame class labels come from the VLM (METHOD §3, §4.1).
 
 ## Approach in brief
 
 | part | what | details |
 |---|---|---|
-| frames | real, native motion blur from handheld-camera videos; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions; sharp = `sss` (all three agree), blurred = `bbb` / `bsb` (Q1 sees blur), the other codes left out | METHOD §3–5 |
+| frames | real, native blur, including motion blur, from handheld-camera videos; blur types are not separated; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions; sharp = `sss` (all three agree), blurred = `bbb` / `bsb` (Q1 sees blur), the other codes left out | METHOD §3–5 |
 | label noise | an independent motion and sharpness measurement ranks frames within a shot and keeps only the best sharp frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
-| photos | an exact injected blur length at the two extremes: 0–3 px camera blur = sharp, 16–30 px = blurred, the band between is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to match the noise floor of real frames | METHOD §6 |
+| photos | a known injected camera-blur length at the two extremes: 0–3 px = construction sharp label, 16–30 px = blurred label; `3 < L < 16` px is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to bring the measured flat-region noise floor closer to that of the sampled video frames | METHOD §6 |
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
 | model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
@@ -39,11 +45,14 @@ This page summarises the approach and the results.
 
 ![Why every training photo goes through H.264](figures/why_video_coding.png)
 
+*The figure's "streaks gone" and noise-floor labels describe these examples; the qualified measurement claim is below.*
+
 *Top two rows: a demo photo (UHD-IQA, CC0) with 4 px and 16 px of simulated camera blur. Without coding, the camera
 noise of the photo is smeared by the blur into fine parallel streaks along the motion, a hatched pattern that is
-conspicuous in the edge fingerprint even at 4 px; a model trained on it would learn the hatching instead of the blur of
-real frames. After one H.264 frame (CRF 23) the streaks are gone and the noise floor is that of the coder, as in real
-video frames (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
+conspicuous in the edge fingerprint even at 4 px and a potential shortcut for the model. After one H.264 frame
+(CRF 23) the streaks are strongly suppressed in this example. In the flat-region measurements of METHOD §6, CRF 23
+came closest among the tested settings to the sampled video frames' noise floor; this is not a guarantee for all
+photos, textures or video codecs (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
 CC BY 3.0, prepared as described in test_images/README.md). The fingerprint is shown around mid-grey: darker = negative,
 lighter = positive. Every photo of the training set goes through this chain: blur in linear light, then H.264, then
 decoding (METHOD §6).*
@@ -80,7 +89,8 @@ Last epoch (epoch 99):
 | edge fingerprint | 0.949 | 83.1% / 73.9% / 58.2% | 0.990 |
 
 On the held-out photos (exact injected blur length, 2,000 sharp and 2,000 blurred) every run reaches an AUC of at least 0.999 at every
-epoch: the two extremes are solved, the difficulty lies entirely in the real frames.
+epoch: separation of the two chosen synthetic extremes is nearly perfect on these photos; the native-frame task is
+harder on the evaluated material.
 
 **Reading.**
 - All three inputs converge to a similar level by the third pass over the blurred frames. RGB learns faster and ends a few
@@ -88,10 +98,12 @@ epoch: the two extremes are solved, the difficulty lies entirely in the real fra
 - On the confident frames, where the teacher label agrees with the measurement, the order changes: grayscale is
   highest from the second pass on, and in the last pass all three lie within 0.004 of each other. Part of RGB's lead at 98% may therefore
   be agreement with the teacher, which also sees the RGB image.
-- The edge fingerprint alone carries enough information to recognise the blur. (It is not a one-way imprint: the
-  operator removes only the constant component, so the luminance is recoverable in principle up to its mean, though
-  ill-conditioned; the per-image normalisation removes the global scale, and colour is lost.) The training results show that the information is present in all three inputs, not which
-  property carries it or whether the models use the same one; this is the subject of the cross-test below.
+- On this material, the signed residual alone supports blur discrimination at a level close to the RGB and grayscale
+  runs. For the ideal, unnormalised and unmasked exact-arithmetic operator `d = Y − K * Y` with replicated borders, luminance is recoverable in
+  principle up to a constant, though the inversion is ill-conditioned. This statement does not establish exact
+  invertibility of the published bfloat16-rounded implementation. Per-image normalisation reduces dependence on
+  residual scale (with a floor), and colour is lost (METHOD §7). These results do not identify which cues each model
+  uses or show that the models use the same ones; the cross-test measures sensitivity to representation changes.
 
 ### Training frames against unseen videos
 
@@ -104,12 +116,15 @@ On the training frames every input keeps improving to the end (frame AUC 0.993�
 unseen videos the curves flatten after the third pass; the gap grows to 19–20 points. None of the models reaches 100% on
 its own training frames.
 
-## Tests on material outside the training data
+## Evaluation on material outside the training data
 
 Every model is evaluated at its own operating points: the thresholds that catch 90, 95 or 98% of the blurred frames of
-its validation split. Nothing is tuned on the test material.
+its validation split. The epoch-99 comparisons below use the fixed final epoch and validation-derived thresholds,
+without fitting either to these external evaluation sets. The alternative checkpoints in "Weights" were selected
+using the same external sets, so those sets also serve as selection data and are not untouched final tests for those
+checkpoints.
 
-| test set | what it is | reference |
+| external evaluation set | what it is | reference |
 |---|---|---|
 | demo photos | 1,000 photos of the [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (CC0), each with simulated camera blur of L = 0, 0.5 … 6 and 16 px through the coding chain of METHOD §6 | exact injected blur length: 0–3 px sharp, 16 px blurred (4–6 px not counted) |
 | demo frames | 1,000 raw camera frames of *Tears of Steel* ((CC) Blender Foundation, mango.blender.org, CC BY 3.0), 1080p, one H.264 frame | the teacher's code: `sss` sharp, `bbb` / `bsb` blurred, other codes left out. A reference, not ground truth |
@@ -177,11 +192,13 @@ are almost entirely contained in those of the other two.*
 largest number of blurred images that the other two miss.*
 
 The same diagrams for the first epochs (0–5), when the models are still close to their pretrained weights, are in
-[figures/venn](figures/venn). ### Cross-test: every model on the other models' input
+[figures/venn](figures/venn).
+
+### Cross-test: every model on the other models' input
 
 Each model is given the finished input of the other models, its own input processing bypassed and nothing converted
 (channels are only copied or selected to fit the first layer; the edge-fingerprint model, whose first layer takes one
-image channel, gets the grayscale input as is and the RGB input one colour channel at a time). Same test material,
+image channel, gets the grayscale input as is and the RGB input one colour channel at a time). Same external evaluation material,
 same operating points. Epoch 99, operating point 95%:
 
 | model ← input | demo photos AUC | sharp photos kept | 16 px caught | demo frames AUC (vs teacher) | GoPro AUC native / H.264 |
@@ -197,10 +214,10 @@ same operating points. Epoch 99, operating point 95%:
 | fingerprint ← R / G / B channel | 0.65–0.72 | 0.5–1.4% | 99.8–100% | 0.46–0.71 | 0.74–0.75 |
 
 Observations:
-- **RGB and grayscale are interchangeable.** The grayscale model decides on the RGB input practically as on its own;
-  the RGB model also sees the blur in the grayscale image (it keeps fewer sharp photos, but separates the demo frames
-  and the GoPro pairs even better). Colour does not carry decisive information; the two image models rely on features
-  present in both.
+- **RGB and grayscale transfer well, but are not calibration-equivalent.** The grayscale model performs similarly on
+  the RGB input; the RGB model also separates blur well on grayscale. However, at its unchanged threshold the RGB model
+  keeps 69.4% of the sharp demo photos on grayscale versus 89.9% on its own input. Colour is not necessary to reach a
+  similar performance level on this material; this does not establish that the two models use the same features.
 - **Little transfer between the fingerprint and the image.** The RGB model calls the fingerprint almost always sharp,
   the fingerprint model calls the full image almost always blurred; the grayscale model transfers partly (on the
   fingerprint it still catches 81% of the 16 px blur and agrees with the teacher on the demo frames better than on its
@@ -210,11 +227,11 @@ Observations:
   in this test.
 - **Early epochs differ.** After the first epoch the fingerprint model still decides well on the grayscale image (demo
   photos AUC 0.931, GoPro native 0.940), while its first layer and trunk are still close to the ImageNet weights; by
-  epoch 5 this is gone. The fingerprint model moves to the residual early in training.
-- Consistent with this, the fingerprint model depends less on the general look of an image: on native and H.264 GoPro
-  images it keeps 97% and 99.8% of the sharp ones, whereas the image models shift native images towards blurred during
-  training (RGB: 98.7% kept after epoch 0, 64.2% after epoch 99). The price is that a blur made of sharp copies (the
-  GoPro averaging) misleads it more: it catches 73% of the native GoPro blur, the RGB model 97%.
+  epoch 5 this transfer has declined. This is consistent with early adaptation to the residual representation.
+- **The GoPro operating-point trade-off differs by input.** On native and H.264 GoPro images the fingerprint model keeps
+  97% and 99.8% of the sharp ones, whereas the RGB model keeps 64.2% of the native sharp images after epoch 99
+  (98.7% after epoch 0). At epoch 99 the fingerprint model catches 73% of the native GoPro blur, the RGB model 97%.
+  These decisions do not isolate dependence on image content or prove that discrete edge copies cause the difference.
 
 In the three-set diagrams below all three models are given the same input; the circles are the models.
 
@@ -266,8 +283,10 @@ python classify.py --weights weights/p99_ep099.pt --input test_images/typical --
 Every image of `--input` is scored and copied to `sorted/sharp` or `sorted/blur`; `sorted/results.csv` lists the blur
 score and the decision (the sigmoid output of the model; a score, not a calibrated probability). `--recall 90 | 95 | 98` selects the decision threshold stored with the weights (the one
 that catches that share of the blurred validation frames; higher = stricter), `--move` moves instead of copying. A GPU is
-used when available; on the CPU the network runs in float32, so scores can differ from the GPU (bfloat16) by about
-0.01–0.04. The models were trained for 1080p video frames decoded from H.264 and stored as lossless PNG.
+used when available; on the CPU the network runs in float32. Scores can differ with device, precision and batching;
+differences of about 0.01–0.04 were observed in some CPU/GPU comparisons, not established as a general error bound.
+The fingerprint's bfloat16 rounding is reproduced on both devices (METHOD §7). The models were trained for 1080p
+video frames decoded from H.264 and stored as lossless PNG.
 In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows the normal behaviour,
 `test_images/hard_cases` a deliberate stress test; their scores at all three operating points are listed in
 `test_images/README.md`.
@@ -285,17 +304,20 @@ In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows
 
 ConvNeXt-Small (ImageNet-pretrained) to stride 16, about 34 M parameters; each file holds the state dict and its metadata
 (input type, epoch, thresholds). The last epoch is the main result. The three further checkpoints (RGB epoch 73, grayscale epoch 58,
-fingerprint epoch 53) were chosen on the external test sets as the stricter alternatives: on the GoPro pairs and the
+fingerprint epoch 53) were chosen on the external evaluation sets as the stricter alternatives: on the GoPro pairs and the
 demo frames they catch more blur than epoch 99, at the cost of keeping fewer sharp photos. Because they were chosen on
-these sets, the sets are selection data for them; the held-out test split is reported separately. The files are stored with Git LFS (`git lfs install` before cloning). The weights were trained on
+these sets, the sets are selection data for them; the held-out test split has not yet been evaluated and will be
+reported separately after a one-time evaluation of the chosen checkpoints. The files are stored with Git LFS
+(`git lfs install` before cloning). The weights were trained on
 non-public material (METHOD §12).
 
 ## Data availability
 
 The training data is **not published**: it was built from copyrighted videos and photographs. No images, frames, crops or
-derived images are published. Published are the method, the selection and labelling rules, metrics, the inference code
-and the trained weights; the training, labelling, selection and evaluation code, the configurations and the run
-provenance will follow (METHOD §12).
+derived images from that dataset are published. Published are the method, selection and labelling rules, reported
+metrics, inference code and trained weights. The training, labelling, selection and evaluation code, configurations
+and recorded run-provenance manifests are not yet included in the public repository, limiting independent
+reproduction (METHOD §12). The repository's demonstration images use separately credited openly licensed sources.
 
 ## Related work
 
@@ -324,7 +346,7 @@ The references below position the components of this study; their tasks, dataset
   blur provide masks for a DeepLab detector; real and synthetic data are also combined. Random JPEG compression during
   preprocessing discourages dataset-specific low-level cues, a conceptual precedent for the coding-chain treatment
   here. Its synthetic region masks and JPEG augmentation serve a different role from native video labels and H.264
-  noise-floor matching.
+  approximate flat-region noise-floor alignment.
 - **Li et al., [Decoupling Perception and Calibration: Label-Efficient Image Quality Assessment Framework (LEAF)](https://arxiv.org/abs/2601.20689)
   (arXiv preprint, January 2026).** A frozen InternVL teacher supplies quality judgments and confidence-weighted pairwise
   preferences to an ImageNet-pretrained ConvNeXt student, with optional calibration using limited human quality scores.
@@ -341,9 +363,14 @@ The references below position the components of this study; their tasks, dataset
   an auxiliary RGB channel, while the fingerprint run here uses the signed residual as its image input. VLMs are
   downstream consumers in that pipeline.
 
-The combination examined here is filtered VLM supervision on native video frames, independent measurement-based
-selection of sharp frames, synthetic blur anchors passed through H.264, and a comparison of RGB, grayscale and signed
-residual inputs. The contribution evaluated here is this combination on the material described in METHOD.md.
+The contribution evaluated here is the combination of filtered VLM supervision on native video frames,
+measurement-based selection of sharp frames, synthetic blur anchors passed through H.264, and a comparison of RGB,
+grayscale and signed residual inputs. The specific empirical finding is that the fixed, signed mesh residual in its
+published bfloat16-rounded implementation, used as the sole image channel, reaches a validation discrimination level
+close to the full-image runs on this material. An exact float32 residual was not tested in these runs.
+The ideal residual is algebraically a fixed weighted discrete Laplacian (METHOD §7). Residual-domain learning,
+blur detection and VLM supervision each have precedents; these results establish neither
+priority for the combination nor universal blur detection or statistical equivalence of the three inputs.
 
 ## Related work by the author
 
