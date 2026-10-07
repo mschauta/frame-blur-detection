@@ -4,42 +4,45 @@
 
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The first stage,
-described here, is a binary decision (sharp / blurred). A later stage will distinguish the type of blur (object motion,
+described here, is a binary decision (sharp / blurred). A planned later stage would distinguish the type of blur (object motion,
 camera motion, defocus).
 
 **Blur types are not separated in this experiment.** On the frames of a video the blur phenomena rarely appear in a
-pure form: camera motion blur, the motion blur of a moving subject and defocus usually occur together, and which of them
-causes the impression of unsharpness would have had to be analysed frame by frame. The labels reflect this. Q1 identifies
-the phenomenon relatively well (blur, motion blur), but it does not answer whether the frame is sharp. Q2 and Q3 ask
+pure form: camera motion blur, the motion blur of a moving subject and defocus can occur together, and which of them
+causes the impression of unsharpness would have had to be analysed frame by frame. The labels reflect this. Q1 asks
+explicitly about blur and motion blur, but it does not answer whether the frame is sharp. Q2 and Q3 ask
 about sharpness; their answers are influenced by motion blur, but the teacher also recognises other types of blur with
 them (Section 4). Separating motion blur alone would need further experiments with the prompts. The synthetic blur of the
-photos (Section 6), on the other hand, deliberately produces camera motion-blur patterns (uniform, straight motion); this
-pattern rarely occurs in a pure form in films, if only because it would make them unwatchable.
+photos (Section 6), on the other hand, deliberately produces camera motion-blur patterns (uniform, straight motion).
+This is a controlled simplification of the potentially curved, non-uniform or spatially varying blur in real recordings.
 
 **The purpose is a quality classification.** The detector is meant to find the frames that can be used, not merely to
 filter out blurred ones: its decision serves a keep / discard classification of frames for a dataset. A frame is *usable*
 if it is sharp in the sense of this study; a blurred frame is not, and neither is a frame whose detail is destroyed by
 other degradations, such as heavy lossy compression with visible artefacts. The model's two classes are named *sharp*
-and *blurred*; in use, *blurred* stands for "not usable".
+and *blurred*; in the intended workflow, *blurred* stands for "not usable". This experiment does not establish that
+the detector identifies every cause of unusability; the retained real-frame labels primarily target blur.
 
-Sharpness is treated as an **absolute, source-independent** property: the task is not to find the best frames of a
-video, but frames that are acceptably sharp whatever their source. Low-quality material is meant to be filtered out,
-never taught as acceptable.
+The intended decision is **source-independent**: the task is to find acceptably sharp frames across sources rather
+than only the best frames within one video. This is an operational goal, not a claim that perceptual sharpness has an
+objective, viewing-condition-independent boundary. Low-quality material is intended to be filtered out.
 
 The cost of the two errors is **asymmetric**. A blurred frame accepted as sharp is the expensive error; rejecting some
 sharp frames is acceptable. All evaluation is built around this (Section 9).
 
-**Not a distillation of the teacher's decisions.** The class labels of the real frames do come from the VLM teacher, but
-the detector is not trained to reproduce its sharp / blurred decisions: this is a filtered weak supervision with
-synthetic anchors. The teacher's labels only help to sort the frames into the two classes: only `sss` (all three questions say
-sharp) and `bbb` / `bsb` (Q1 sees blur) are used, the uncertain and the not-sharp-but-not-blurred combinations are left out, an independent measurement reduces the label
-noise on the sharp side, and the two extremes are defined without the teacher, by photos with an exact injected blur length (an
-unblurred photo is sharp even where the teacher says otherwise). Agreement with the teacher is therefore reported as
-agreement, not as accuracy (Section 9).
+**Filtered teacher supervision with synthetic anchors.** The class labels of the real frames come from the frozen
+VLM teacher, and the detector is trained against the retained labels. The recipe does not reproduce every teacher
+decision: only `sss` (all three questions say sharp) and `bbb` / `bsb` (Q1 sees blur) are used; uncertain and
+not-sharp-but-not-blurred combinations are left out. A separate, non-learned measurement ranks the sharp frames to
+reduce suspected label noise. The photos provide additional labels defined by the injected blur length: L = 0 is
+assigned to the sharp class by construction, even when the teacher disagrees. This does not prove that the original
+photo is objectively sharp or that the teacher is wrong. Frame metrics are therefore agreement with the retained
+teacher labels, not independently verified accuracy (Section 9).
 
 **How the experiment evolved.** The experiment started as training a detector on the blur fingerprint alone (the edge
-residual of Section 7), on the hypothesis that the finest edge layer carries the blur pattern while suppressing the
-content. Its results, in particular that the fingerprint alone reached a high level, prompted the comparison with the
+residual of Section 7), on the hypothesis that a fine-scale high-pass representation retains useful blur patterns while
+attenuating smooth image content. It also contains texture, noise and coding artefacts. Its results, in particular that
+the fingerprint alone reached a high level, prompted the comparison with the
 plain RGB image and with a grayscale image: grayscale vs RGB differ in colour; fingerprint vs grayscale mainly in the
 frequency band, but also in the encoding (linear residual vs sRGB-encoded luminance), the normalisation, the companding
 and the parametrisation of the first layer.
@@ -62,52 +65,50 @@ question of composition and aesthetics:
 - How disturbing is the blur of one object in the composition?
 - Is the blur an error, or part of the picture (a panned background, a deliberately soft foreground)?
 
-Blur also has many types: motion blur from the camera or from the subject, focus and defocus, and surfaces that are
-soft or hazy in themselves (mist, water, smooth skin, an out-of-focus plane). The question "is this frame sharp?" sounds
+Motion blur from the camera or subject and defocus can all reduce apparent sharpness. Soft or hazy content (mist,
+water, smooth skin) can also complicate the judgement without being blur itself. The question "is this frame sharp?" sounds
 simple; answering it is much harder. This was confirmed both by the measurements (Section 3.1: the classes overlap
 strongly in measured displacement) and by the vision-language models (Section 4.2: two usable model sizes disagree on a
-substantial share of the same frames). The extremes are easy to identify, also for human perception; the transitions are
-uncertain whether one relies on a model, on a measurement or on a human observer.
+substantial share of the same frames). The visual ladder inspections and teacher probes motivated treating intermediate
+cases as uncertain rather than establishing one sharp / blurred boundary.
 
-**Human perception.** How much blur the eye tolerates and when it notices it depends on the viewing conditions, not only
-on the image:
-- *Resolution of the eye.* Normal visual acuity resolves detail of about one minute of arc. Whether a blur of a few
-  pixels is visible therefore depends on how large the picture is seen: the display size and the viewing distance
-  (pixels per degree), not the pixel count alone. A frame viewed small can look sharp; the same frame enlarged does not.
-- *Contrast and content.* Blur is noticed first on strong, high-contrast edges and fine regular structure; on smooth,
-  untextured areas (skin, sky, water) the same blur can stay invisible because there is little fine detail to lose.
-- *Context and completion.* The visual system judges a picture as a whole: familiar shapes, edge and contour continuity
-  and perceptual completion partly compensate for the degradation, so a measurably unsharp image may still look sharp
-  (Section 4.1).
-- *Reference and adaptation.* The judgement depends on what was seen before: after looking at blurred pictures, a
-  slightly soft picture looks sharper, and the order of the pictures shown makes the judgement partly comparative.
-- *Motion.* In a moving picture, blurred frames often go unnoticed: in playback the eye integrates over time and
-  follows moving subjects, and a moving blurred pattern looks sharper than the same pattern standing still. Motion blur
-  that is invisible at playback becomes visible when the single frame is looked at. This matters here, because the frames
-  are meant to be used as single images.
+**Viewing considerations.** Display size, viewing distance, contrast, fine detail and deliberately blurred parts of a
+composition are relevant when inspecting the samples. Smooth regions provide fewer visible edge cues than structured
+ones, and the intended use here is a single extracted image rather than video playback. These considerations motivate
+the task; they are not psychophysical findings of this experiment. The quantitative results use retained VLM labels
+and synthetic construction labels, not measured human acuity or a validated perceptual threshold.
 
 **A working figure from the frame measurement, and why it was not enough.** The exposure time of the videos is not
-known; 35 of the 37 labelled videos run at 29.97 frames per second (about 33 ms between frames), two at 59.94. Assuming the usual 180° shutter, the
-exposure is about half the frame interval, so the smear is about half the measured travel between neighbouring frames
-(Section 3). As a working figure, a smear of two to three pixels on a 1080p frame was taken as the point where the eye
-begins to see it. Because the visibility depends on how near the camera is, thresholds per shot size were then tried
+known; 35 of the 37 labelled video files run at 29.97 frames per second (about 33 ms between frames), two at 59.94. The
+37 files represent 36 distinct video groups because one video occurs under two filenames (Section 2). Assuming a 180° shutter, the
+exposure is about half the frame interval; with constant velocity, smear would then be about half the true travel
+between neighbouring frames. Using the measured proxy this way was a working approximation (Section 3). A smear of
+two to three pixels on a 1080p frame was provisionally taken as the onset of visible blur. Thresholds per shot size were then tried
 (a travel of 1 px for long and medium shots, 3 px for medium close-ups, 5 px for close-ups and extreme close-ups). This
 needed the shot size of every shot, which no model determined without errors (Section 4.2). The working figure is an
 assumption, not a measurement; the sharp tolerance of the photos (0–3 px, Section 6.1) was later set independently, with
 the teacher, and is consistent with it.
 
 These observations are why no single pixel threshold is used to define the classes (Section 4.1, Section 6.1): the
-photos give the two ends of the scale with an exact blur length, and the uncertain middle is learned from the frames.
-
-*References for the perceptual statements will be added; a systematic literature review is still to be done.*
+photos give two synthetic anchor ranges with an exact injected blur length, while the frames supply native blur
+variation with unknown physical blur lengths. The frame labels do not establish a measured 3–16 px middle band.
 
 ## 2. Material
 
+The counts below describe the fixed data snapshot used by the reported runs. The 37-file cohort means files
+represented in that labelled-frame snapshot, not 37 completed labelling jobs. The source dataset builder continues
+processing and labelling additional material; its live database counts must not be substituted into these results.
+
 | source | role | size |
 |---|---|---|
-| video frames | real, native motion blur; both classes | 177 imported videos (H.264, 1920×1080, 4:2:0); 37 labelled by the VLM teacher (Section 4); ~4.3 M frames in total, 374,019 of them labelled |
-| photos | sharp anchor + simulated camera blur | 48,566 camera photos, de-duplicated. Part of them: only files with camera EXIF data (genuine photographs, no video frames), resized to a 1080 px short side; the rest: photos at native size with a fixed-height border at the bottom, which is cut off first (judged to be camera photographs as well) |
-| 4K video frames | sharp anchor + simulated camera blur | 231 published 4K video frames (JPEG), from which the blurred ones were removed by hand; reduced to 1920×1080 by exact 2×2 averaging. They carry a noise / grain floor like the camera photos (and a JPEG 8 px grid), not the clean floor of the encoded 1080p video frames |
+| video frames | real, native blur, including motion blur; blur types are not separated; both classes | 177 imported video files (H.264, 1920×1080, 4:2:0); 37 processed and labelled by the VLM teacher (Section 4), representing 36 distinct video groups; ~4.3 M frames in total, 374,019 of them labelled |
+| photos | sharp anchor + simulated camera blur | 48,566 de-duplicated files treated as camera photographs. Part of them: files selected for camera EXIF data, resized to a 1080 px short side; the rest: photos at native size with a fixed-height border at the bottom, which is cut off first (judged to be camera photographs as well). These are source-selection criteria, not a forensic guarantee of provenance |
+| 4K video frames | sharp anchor + simulated camera blur | 231 published 4K video frames (JPEG), from which the visibly blurred ones were removed by hand; reduced to 1920×1080 by exact 2×2 averaging. In the inspected material they retain fine noise / grain and JPEG block artefacts; their flat-region residual statistics differ from those of the encoded 1080p frames |
+
+**Video files and groups.** Of the 37 processed video files, one is a duplicate of another under a different filename.
+Frame selection excludes the duplicate copy, leaving **36 distinct video groups** for splitting, so the duplicate
+cannot cross the train / validation / test boundary. File-level descriptions and statistics still refer
+to 37 files; the split and the 3,819 labelled framing units refer to the 36 groups.
 
 **Why these videos.** The frames come from NSFW videos. This material concentrates the cases that are hard for
 measurement-based sharpness filtering: large unstructured skin surfaces with little edge texture, water scenes (moving
@@ -117,36 +118,41 @@ lighting and compression vary widely.
 
 All material is protected by copyright and **is not published** (Section 12).
 
-**Real and synthetic blur.** Real blur exists only on unmanipulated video frames: the labelled frames of the dataset
-and the test frames (Section 9). Every other blur in this study is synthetic: the camera blur added to the photos
-(Section 6), the blur ladders of the test photos, and, among the reference sets, blur made by averaging consecutive
-frames. The original photos themselves, both the training photos and the test photos, may contain blur as part of the
-composition (a defocused background, a soft foreground, a deliberately blurred subject). In this study *sharp* for an
-original photo means "no blur was added", not "no blur anywhere in the picture": in training, such compositional blur
-is therefore taught as sharp (Section 6), and in testing it has to be kept in mind when a model calls an original
-blurred.
+**Real and synthetic blur.** Native blur is assessed on unmanipulated video frames: the labelled frames of the dataset
+and the external real-frame evaluation sets (Section 9). The deliberately added blur is synthetic: camera blur on
+photos (Section 6), photo blur ladders, and blur made by averaging consecutive frames in the GoPro reference pairs.
+Original photos, including L = 0 anchors, may already contain motion blur, defocus or compositional blur. In this study
+the sharp label of an L = 0 photo means "no synthetic blur was added", not "no blur anywhere in the picture". Such
+inherited blur is retained in the construction label; a detector or teacher disagreeing with it is not thereby proven
+wrong.
 
 ## 3. Frames: extraction and measurement
 
-**Extraction.** Every frame of a video is decoded at its native frame rate (consecutive frames are ~33 ms apart) and
+**Extraction.** Every frame of a video is decoded at its native frame rate (consecutive frames are about 33 ms apart
+at 29.97 fps, or 17 ms at 59.94 fps) and
 stored losslessly. Frames carrying subtitles or overlay text are excluded.
 
 **Shots.** A "shot" here is not the film-editing notion. It is a run of near-identical frames, cut by a simple frame
 similarity: each frame is described by the mean colour of a 16 × 9 grid, and two frames are compared by a trimmed
-distance over the best-matching 65% of the cells (so a person moving through the picture does not dominate). A shot
+distance over the best-matching 65% of the cells (to reduce sensitivity to a person moving through the picture). A shot
 ends at a sudden change between neighbouring frames (cut distance ≥ 0.12) or when the picture has drifted far enough
 from the shot's first frame (drift distance ≥ 0.08, e.g. a zoom or a slow reframing); a shot lasts at least 0.5 s.
 The segmentation is therefore not consistent with the editor's cuts: a long take may be split into several shots,
-and the unit is "interchangeable framing", which is what the per-shot ranking needs. A content filter removes empty or unusable frames: luminance standard deviation ≥ 1, entropy ≥ 1 bit,
+and the unit is "interchangeable framing", which is what the per-shot ranking needs. Temporally separate shots with
+similar framing were not merged into editorial scenes or longer groups. Selection uses these shot boundaries and
+timestamps (Section 5). A content filter retains frames with luminance standard deviation ≥ 1, entropy ≥ 1 bit,
 at most 90% over- or under-exposed pixels.
 
 **Burnt-in text and watermark.** The selected frames contain no burnt-in text (subtitles, captions, overlays). Every
 frame carries a watermark: semi-transparent white, at a fixed position per video, so it is barely or not visible on a
 light background. A per-video mask marks its area.
-- *Measurement:* the watermark area is excluded, so it does not influence the measured values.
+- *Measurement:* the watermark area is excluded from the measured regions.
 - *Training:* the watermark is masked on half of the frame samples and left visible on the other half (Section 8).
   On the unmasked samples it appears whole or, on a light background, only partially; the model has to learn that this
-  sharp overlay does not make a blurred frame sharp. Masked pixels never contribute to the decision (Section 7).
+  sharp overlay does not make a blurred frame sharp. Input pixels at invalid locations are zeroed and cells with less
+  than half valid pixels are excluded from pooling (Sections 7–8). This does not guarantee complete exclusion of masked
+  content: the residual is computed before masking and can mix masked RGB values into neighbouring valid pixels, while
+  the trunk can use surrounding context and mask geometry.
 
 **Measurement** (an independent, non-learned signal, used for ranking and as a cross-check, never as the label).
 The measured values, including single-image sharpness measures such as the Laplacian variance, were used only to
@@ -154,38 +160,41 @@ measure, select and filter the frames. They were never used in training: they ar
 model sees only the RGB-mesh `m09` edge fingerprint with p99 normalisation (Section 7), or, in the comparison runs, the
 RGB or grayscale image. The measurement consists of:
 
-- *camera motion*: the global displacement between neighbouring frames, estimated per 256 px tile and taking the
-  median of the tiles (at least 4 tiles with enough contrast), so a hand crossing the picture cannot drag it;
-- *regional motion*: the displacement left after compensating the camera, measured in 160 px cells;
+- *camera motion*: a global displacement proxy between neighbouring frames, estimated per 256 px tile and taking the
+  median of the tiles (at least 4 tiles with enough contrast), to reduce sensitivity to local moving subjects;
+- *regional motion*: the residual displacement proxy after compensating the camera, measured in 160 px cells;
 - *within-shot sharpness rank*: the rank of a frame's sharpness among the frames of its shot (smaller = sharper).
 
-**How motion is measured.** A frame difference equals displacement times local contrast, so it is divided by the local
-gradient to give pixels. Three pairs of frames are compared around frame *n*:
+**How motion is measured.** Under brightness constancy and sufficiently small displacement, a frame difference is
+approximately the spatial gradient dotted with displacement. Dividing by local gradient magnitude gives a scalar,
+pixel-valued motion proxy, not ground-truth displacement: edge orientation (the aperture problem), illumination
+changes, coding and larger motions can affect it. Three pairs of frames are compared around frame *n*:
 - the **outer pair** *n−1* / *n+1* (halved, as two frame intervals separate them) is the main signal. At a dead point of
-  a fast, periodic movement the motion reverses: *n−1* and *n+1* return to nearly the same place while frame *n* sits at
-  the extreme, held still for its exposure. Frame *n* takes no part in this comparison, so it is not misread as moving;
-- the two **inner pairs** *n−1* / *n* and *n* / *n+1* are a floor for a turn that lasts longer than one frame (otherwise
-  the first frame of such a plateau, with a moving neighbour on one side, would read as fast).
+  a fast, periodic movement the motion can reverse, and *n−1* and *n+1* may be close even though frame *n* is at an
+  extreme. The outer pair is a heuristic for reducing inflated readings around reversals; a small value does not imply
+  that frame *n* stayed still throughout its exposure or has no motion blur;
+- the two **inner pairs** *n−1* / *n* and *n* / *n+1* provide alternative readings near longer turns or plateaus.
 
-The smallest of the three wins. Neighbours that are exact copies of frame *n* (duplicated source frames) are skipped,
+The smallest of the three wins; this heuristic can underestimate motion at reversals. Neighbours that are exact copies of frame *n* (duplicated source frames) are skipped,
 because they would force the reading to zero. Only structured pixels count (the strongest 15% of gradients, per frame
 or per cell), the 90th percentile is taken within a cell, and the regional value is the 90th percentile over the cells
-(the tenth-worst region: not a single noisy cell, and not the calm majority when the motion is confined to a corner).
+(a high-percentile summary rather than the maximum of one cell or the median of mostly calm cells).
 Cells covering the watermark or with too little structure do not vote.
 
-The motion values are displacements between frames, not blur lengths: the visible blur depends on the exposure time.
-At the usual 180° shutter the smear is about half the measured travel.
+The motion values are inter-frame displacement proxies, not blur lengths: the visible blur depends on the exposure time.
+With constant velocity and a 180° shutter, the smear would be about half the true frame-to-frame travel. Neither the
+shutter setting nor constant velocity is established here, so this is not a conversion of the measured proxy to blur length.
 
 ### 3.1 Variety of the sample and the handheld camera
 
-The frames span many shots (3,819 labelled shots in 36 videos), subjects, locations, interactions, lighting set-ups,
+The frames span many shots (3,819 labelled framing units in 36 distinct video groups), subjects, locations, interactions, lighting set-ups,
 camera models, operators and years of production (2014–2026), and therefore many compression levels. Within a shot
 the variety is small: neighbouring frames are variations of one picture. Between shots and videos it is large.
 
 **The share of sharp frames varies widely.** How many sharp frames a video or a shot can give depends on the recording
 quality, the camera motion, the motion of the subjects, the camera view (close-up or long shot), the number of people,
 and on water or a moving water surface in the picture; each of these can reduce the number of sharp frames
-substantially. Per video (37 labelled videos), the `sss` share of the labelled frames ranges from 0.2% to 77.6%
+substantially. Per labelled video file (37 files, including the duplicate), the `sss` share of the labelled frames ranges from 0.2% to 77.6%
 (median 29.9%), the blurred (`bbb` + `bsb`) share from 3.2% to 60.5% (median 20.9%). Per shot:
 
 | blurred share of the shot | shots with `sss` frames | `sss` frames | `sss` per shot (median) | `sss` share of the shot (median) |
@@ -197,12 +206,12 @@ substantially. Per video (37 labelled videos), the `sss` share of the labelled f
 | > 75% | 216 | 1,130 | 2 | 5% |
 
 This is why the sharp selection is proportional per shot (Section 5): a calm shot (static camera, slowly moving subject)
-gives many near-identical sharp frames, a blur-dominated shot only a few. Those few are the most valuable borderline cases, because in such a shot they alone
-carry the sharp pattern.
+gives many near-identical sharp-labelled frames, a blur-dominated shot only a few. Retaining some of those few helps
+represent sharp-labelled cases from otherwise blur-dominated framing units.
 
-The handheld camera matters for two reasons. First, the camera moves continuously, so the native blur is a mixture of
-camera blur and object motion blur. Second, the measured camera motion shows what the teacher still accepts as sharp.
-Displacement between neighbouring frames (px); the measurement covers ~4.2 M frames, the rows below are the 374,019
+The handheld camera matters for two reasons. First, camera motion can contribute alongside subject motion and
+defocus to the native blur. Second, the measured camera-motion proxy shows what the teacher still accepts as sharp.
+Inter-frame displacement proxies (px); the measurement covers ~4.2 M frames, the rows below are the 374,019
 labelled ones:
 
 | label | camera, median | camera, 99th pct. | regional (after camera), median | regional, 99th pct. |
@@ -212,14 +221,14 @@ labelled ones:
 | `bsb` | 2.3 | 35.4 | 9.3 | 26.3 |
 | `bbb` | 3.4 | 49.3 | 14.4 | 36.6 |
 
-Camera motion is present in sharp frames as well: a frame-to-frame camera displacement of up to ~20 px often leaves no
-visible blur, because the visible blur depends on the exposure time. The classes overlap strongly in displacement, which
-is why displacement alone cannot be used as a blur length, and why the measurement ranks frames within a shot instead of
-labelling them.
+The `sss` class includes high motion-proxy values (camera 99th percentile 21.6 px); this is a statement about teacher
+labels, not proof that those frames have no visible blur. The classes overlap strongly in the proxy, and native blur
+also depends on exposure time and within-exposure motion. The measurement therefore ranks frames within a shot rather
+than converting motion directly into a blur label.
 
 ## 4. Labelling with a frozen VLM teacher
 
-Every frame is put to a frozen vision-language model (Qwen3.5-4B-bf16) three times, with three different questions. The
+Each frame submitted for labelling is put to a frozen vision-language model (Qwen3.5-4B-bf16) three times, with three different questions. The
 answers are kept separately as a three-letter code, one letter per question, in the order Q1, Q2, Q3; `u` marks an
 unreadable reply (no explicit yes / no). **The letters do not mean the same for every question:**
 - **Q1** asks about blur and motion blur: `b` = blurry / motion blur, `s` = *no* blur seen. An `s` on Q1 does **not**
@@ -240,9 +249,10 @@ Qwen3.5-4B-bf16 was chosen as the teacher. The four sizes were later compared un
 close-ups and close-ups and on large, unstructured skin surfaces, where edge-based measurements have little to work
 with. The prompts were first tested interactively in ComfyUI with several models and weights, on sharp and
 blurred images, and in particular on extreme close-ups and close-ups that the measurement rated blurred but that looked
-sharp to the eye. In these tests the teacher resolved that contradiction: its answers followed human perception rather
-than the measurement. The experiments with the two sharpness questions were prompted by the observation that on some
-images the teacher judged too strictly with the Q3 wording and more tolerantly with the Q2 wording. The prompts were then
+sharp to the author. In these pilot inspections the teacher's answers appeared closer to the author's visual judgement
+than to the measurement; this was informal assessment, not independently validated human agreement. The experiments
+with the two sharpness questions were prompted by the observation that on some images Q3 produced fewer sharp answers
+than Q2. The prompts were then
 shaped further by testing them on many images: simple, short, closed (yes / no) questions whose answers
 are easy to parse. Like every such model, it is prompt-sensitive, which was also seen during the processing.
 It is also content-sensitive. The labels were checked by hand on many videos: on the same image the answers are
@@ -259,14 +269,15 @@ is for a human observer (Section 4.1).
 **Design of the three questions.** The questions were built on purpose so that contradictory, uncertain labels can be
 recognised from the combination of the answers. Q1 asks whether the image is blurry and explicitly whether it has motion
 blur. Q2 and Q3 are control questions about sharpness, one about the *video frame*, one about the *image*; they judge
-sharpness in a more complex way, weighing the whole picture, including its composition (for example an intentionally
-soft background). With the word "frame" the teacher
-answers more leniently, with "image" more strictly. A frame is accepted as sharp only if all three agree (`sss`);
+the image as a whole, and their responses appeared sensitive to composition in the pilot inspections (for example an
+intentionally soft background). The wording "video frame" produced more sharp answers than "image" on those samples.
+A frame is accepted as sharp only if all three agree (`sss`);
 the other combinations are either contradictory, borderline, or not sharp without being motion-blurred, and are left
 out (see the code table below).
 
-The wording is the threshold. In a pilot on 156 frames, Q1 called 24% blurred, Q2 32% and Q3 72%: Q3 is a much stricter
-version of Q2 that differs by one word.
+**Wording changes the observed response rate.** In a pilot on 156 frames, Q1 called 24% blurry, Q2 called 32% not sharp
+and Q3 called 72% not sharp. Replacing "video frame" with "image" therefore changed the decisions substantially on
+this pilot; it does not define a numerical physical blur threshold or establish the same ordering on every dataset.
 
 **Consistency of labels and measurements.** Every frame used here was labelled with the same frozen teacher and
 measured with the same method; the earlier labelling and measurements were carried out again, so the labels and measured values of all
@@ -276,8 +287,8 @@ frames are directly comparable.
 identified by hashes. Before a video is labelled, three control images with recorded replies are asked again; any
 difference in the reply text stops the run.
 
-**Batched answering.** Answers are obtained in batches of four images with greedy decoding, which forces a bare
-yes / no. Whether batched answering is acceptable was a judgement made by the author on the test images of a pilot, where
+**Batched answering.** Answers are obtained in batches of four images with greedy decoding. The prompts request a bare
+yes / no; replies without a parseable explicit answer are marked `u`. Whether batched answering is acceptable was a judgement made by the author on the test images of a pilot, where
 batched and single-image (sampled) answering differed on about 1 in 40 frames; the decision was to label in batches,
 for an unambiguous, short, machine-readable output. The teacher is prompt-sensitive and, even more, composition-dependent,
 so the pilot figure holds for the pilot images only, and the re-measurement in Section 4.2 for its own samples. Neither
@@ -303,29 +314,20 @@ the criteria and the decision strategy relatively consistent over the whole data
 judge, and their decisions are combined by majority, consensus or statistical aggregation, in which case inter-rater
 agreement and rater variability can also be quantified.
 
-In this experiment the role of human decisions was deliberately minimised. The perceptual boundary between a sharp and
-a slightly blurred image is not a well-defined, directly observable threshold. The human visual system does not judge an
-image from local information alone: context, familiar structures, edge and contour continuity and perceptual completion
-partly compensate for the degradation, so an image that is already measurably unsharp may still look acceptably sharp.
-The judgement is also strongly influenced by the reference and by the relative quality of the images shown one after
-another, so it becomes partly comparative.
-
-A further problem of the boundary region is that when the rater no longer sees a clear perceptual difference between the
-two categories, the uncertainty of the decision grows. Under a forced binary choice, decisions on such samples become
-partly random, which lowers the reproducibility and reliability of the labels.
+This experiment did not collect independent human ground truth for the reported frame metrics. Visual inspection was
+used during method development, and intermediate blur levels were treated as uncertain rather than assigned a human
+binary boundary. This is a labelling choice, not evidence that human raters would be unreliable or that the VLM is more
+accurate than a controlled human assessment.
 
 Human judgement was therefore not used as direct ground truth, but mainly to calibrate the VLM-based labelling: shaping
 and testing the prompts on sample images, choosing between batched and single-image answering on the frames where they
 differed, and visually inspecting graded blur ladders. A similar transitional uncertainty was also seen in the teacher's
 decisions (Section 6.1: the share of `sss` answers does not fall monotonically between 1 and 3 px). So for synthetically
-increasing blur no single sharp / blurred dividing line was drawn. Instead, two stable ranges were set: the largest blur
-at which an image still counts clearly as sharp (3 px, from the teacher probe, Section 6.1), and the smallest blur at
-which it counts clearly as blurred (16 px, from visual inspection of encoded blur ladders: from 16 px on even extreme
-close-ups look blurred). The uncertain transition band between the two is excluded from training and from the photo
-evaluation.
-
-This lowers the risk that the model learns a categorical decision from samples on which the visual property itself
-cannot be determined reliably by a binary human judgement.
+increasing blur no single sharp / blurred dividing line was drawn. Instead, two synthetic anchor ranges were chosen:
+0–3 px, informed by the teacher probe (Section 6.1), and 16–30 px, informed by visual inspection of encoded blur ladders.
+The strictly intermediate band, 3 < L < 16 px, is excluded from training and class-based photo metrics; intermediate
+lengths can still be inspected and reported descriptively in blur ladders and teacher probes. These thresholds define
+this experiment's synthetic classes; they do not establish universal human sharpness thresholds.
 
 ### 4.2 Choosing the teacher: four model sizes under identical conditions
 
@@ -339,8 +341,8 @@ before the next one was loaded).
 **Test images.**
 - *Photos with an exact injected blur length:* all 1,000 openly licensed demo images from the
   [UHD-IQA Benchmark Database](https://database.mmsp-kn.de/uhd-iqa-benchmark-database.html) (Hosu et al., 2024; CC0;
-  a mix of photographs, edited images and renders, not people-centred). They are not training images: none of the
-  detectors of this study has seen them. Each was given simulated camera blur of L = 0, 1, 2, 3, 4, 6 and 16 px through the
+  a mix of photographs, edited images and renders, not people-centred). None was used for detector training; external
+  inference or checkpoint-selection use is a separate role (Section 9). Each was given simulated camera blur of L = 0, 1, 2, 3, 4, 6 and 16 px through the
   video path of Section 6: 7,000 images. L ≤ 3 px counts as sharp, 16 px as blurred; 4 and 6 px are reported only.
 - *Frames:* 1,278 confident-sharp frames (up to three per shot, at least 0.5 s apart) and 2,239 confident-blurred
   frames (one per shot) from the labelled videos, with the bounds of Section 9. Their reference is the 4B's own code,
@@ -391,11 +393,12 @@ The memory peak is the device total during the run and includes the allocator's 
 - *The 4B is reproducible.* Run again in batches, it returned exactly the stored code on all 3,517 frames.
 - *4B and 9B both follow the blur length:* at 16 px only 5–7% remain `sss`, and they call 78.4% and 79.3% blurred.
   The 9B is more lenient on the sharp side: it calls 91.9% of the unblurred photos `sss`, the 4B 78.4%. By the
-  definition of Section 6 an unblurred photo is sharp, so on these images the 4B errs more often on the sharp side.
+  synthetic-anchor definition of Section 6, L = 0 is assigned to the sharp class, so the 4B disagrees with that
+  construction label more often. This does not establish which model better judges the originals' perceptual sharpness.
 - *On frames the two differ mainly on the blurred side.* The 9B calls 15.9% of the blurred frames on which the measurement agrees
   sharp, 13.4% in close shots and 30.6% in shots that are not close. Which of the two is right cannot be decided on these
-  frames: there is no exact reference, the measurement only agrees on the extremes. This disagreement is the label noise
-  the detector is trained through.
+  frames: there is no independent ground truth, and agreement with the measurement does not prove correctness. The
+  disagreement indicates possible label uncertainty, without determining which teacher made an error.
 - *Close shots are where the VLM matters.* The measurement-based filter does not work reliably on close-ups and extreme
   close-ups; the two usable sizes agree more there (76.0% of the blurred frames) than on shots that are not close (50.6%).
 - *Cost.* The 9B is about 25–30% slower than the 4B and needs nearly the whole 32 GB card in batches of four.
@@ -424,7 +427,7 @@ The labels of this study are the 4B's, answered in batches.
 ## 5. Frame selection
 
 **Label noise.** The teacher's label is never changed by the measurement: the measurement does not relabel a frame and
-does not move it to the other class. It is used only to reduce label noise inside a class, in this order:
+does not move it to the other class. Selection is intended to reduce suspected label noise, in this order:
 1. the content filter and the exclusion of frames with burnt-in text (Section 3);
 2. the exclusion of uncertain answer combinations (`bss`, `sbb`, `ssb`) and of unreadable answers;
 3. on the sharp side only, the per-shot ranking by the measured sharpness, which keeps the best part of the `sss` frames
@@ -435,13 +438,15 @@ The sharp and blurred sides are selected by different rules, on purpose.
 - **Sharp (`sss`).** The teacher gives the label, the measurement ranks. Per shot only the best part of the `sss`
   frames by within-shot sharpness rank is kept: 20% of the shot's `sss` frames, 10% if more than half of the shot is
   blurred, at least one, with at least 0.2 s between kept frames (neighbouring sharp frames are near-duplicates).
-  This reduces the teacher's tolerance: an `sss` frame may still hide a small blur the teacher did not notice.
+  This narrows the retained sharp-labelled pool; it is intended to reduce cases where `sss` overlooks blur, without
+  independently proving the retained frames' sharpness.
 - **Blurred (`bbb`, `bsb`).** Not filtered: every frame is kept, with no minimum gap (neighbouring blurred frames
-  differ because the motion changes them). This covers the widest possible range of motion blur: weak and strong,
+  differ because the motion changes them). This retains the range of native blur present in the selected material: weak and strong,
   partial and full, slow and fast, periodic.
 
-**Splits.** Whole videos go to train, validation or test; duplicate videos share one group. Validation and test are
-balanced per video (as many sharp as blurred frames from every video), so a video's look carries no label information.
+**Splits.** Whole video groups go to train, validation or test. The 37 processed files yield 36 distinct groups after
+the duplicate copy is excluded. Validation and test are balanced per group (as many sharp as blurred
+frames from each group), so group identity alone does not predict the label in those splits.
 
 | split | sharp | blurred | video groups |
 |---|---|---|---|
@@ -449,31 +454,71 @@ balanced per video (as many sharp as blurred frames from every video), so a vide
 | validation | 3,301 | 3,301 | 11 |
 | test | 3,296 | 3,296 | 7 |
 
+The reported training comparisons use the 11-group validation split. The **7-group held-out test split has not yet
+been evaluated**; its results will be reported after the checkpoints and evaluation procedure have been fixed. External
+sets used to choose checkpoints are selection data for those checkpoints, not an untouched final test (Section 9).
+
 **Frames as pairs.** Within a shot, sharp and blurred frames share scene, light, camera, codec and people; what differs is
-the native motion blur. 1,183 of the 2,502 training shots contain both classes (71% of the sharp and 62% of the blurred
-training frames). Consecutive blurred frames are permutations of one motion, 33 ms apart.
+the native blur and the associated frame content. These are naturally related samples, not a controlled intervention
+on blur alone. 1,183 of the 2,502 training shots contain both classes (71% of the sharp and 62% of the blurred
+training frames). Consecutive blurred frames are correlated neighbours at the video's native frame interval.
 
 ## 6. Photos: simulated camera blur through the video path
 
-The photos supply the two **extremes** with an exact injected blur length; the frames supply the ambiguous middle.
+The photos supply two **synthetic anchor ranges** with an exact injected blur length; the frames supply native blur
+variation. Their unknown physical blur lengths do not establish that they fill a particular intermediate pixel range.
 
-**What the photos stand for, and why they are blurred.** An unblurred photo (L = 0) is the ideotype of an absolutely
-sharp frame; 1–3 px is its realistic abstraction, the tolerance of a sharp frame (Section 6.1). Both are sharp by
-definition, and the teacher's label does not override this. The photos are blurred for two reasons. First, every sharp
-image gets an absolute blurred counterpart that the model can tell apart from it without doubt, so it sees the sharp and
-the blurred pattern in context, on the same content. Second, the synthetic blur produces blur patterns that do not occur
-on the video frames, or occur only rarely (uniform straight camera motion in twelve directions and four lengths).
+**Originals and splits.** The anchor pool contains 48,566 camera-photo files plus 231 reviewed 4K frames, or 48,797
+originals. Originals are split before synthesising variants: the EXIF-selected photos by the manifest's `shoot_group`, the
+border-cropped photos and 4K frames by source album, with 70/15/15 targets. The frozen index checks that no group
+crosses a split. The original pools before the evaluation cap are:
 
-**Why the video path.** A camera photo's high-frequency content is dominated by sensor noise, a fine point cloud that motion
-blur turns into streaks. Video frames do not carry this noise: the video codec removes it.
-On an unencoded photo, synthetic camera blur therefore produces a characteristic hatched pattern: the noise is smeared
-into fine parallel streaks along the motion direction, visible in the fingerprint even at 3 px and extremely
-conspicuous. A model trained on it would learn this hatching instead of the blur of real frames; this is a main reason
-why every photo is re-encoded (after the blur) before training. Measured on the flat parts
-of the images, the noise floor of the frames is matched only after H.264 encoding (CRF 23 closest); JPEG does not match
-(too strong an 8 px block grid). So every photo sample goes through the same coding chain as a video frame, with one restriction: a single encoded frame
-is intra-coded, so the temporal artefacts of the P / B frames of a real group of pictures are not reproduced; the chain
-matches the noise floor, not every artefact of a video:
+| anchor source | total originals | train | validation | test |
+|---|---|---|---|---|
+| camera-EXIF photos | 5,194 | 3,587 | 803 | 804 |
+| border-cropped photos | 43,372 | 29,736 | 6,818 | 6,818 |
+| reviewed 4K frames | 231 | 161 | 35 | 35 |
+| total | 48,797 | 33,484 | 7,656 | 7,657 |
+
+Validation and test are each capped to 2,000 originals, retaining one sharp and one blurred recipe row per original
+(2,000 per class). The 11,313 other held-out originals are omitted from the capped index, not returned to training.
+Synthesised variants inherit the original's split. The three published runs use the same index (Section 10).
+
+**What the photos stand for, and why they are blurred.** An original photo (L = 0) is assigned to the sharp class by
+construction; the 1–3 px variants extend this anchor to a small injected-blur tolerance (Section 6.1). The teacher's
+label does not override these assignments. L = 0 measures the absence of added synthetic blur, not the absence of
+pre-existing motion blur or defocus. The photos are blurred for two reasons. First, each construction-sharp photo gets
+a counterpart with a known, large injected blur, so the two patterns share the same original content. Second, the
+synthetic variants supply controlled uniform straight-motion patterns in twelve directions and four blurred lengths,
+complementing the less controlled blur of the video frames.
+
+**Why the video path.** On flat regions of the inspected photos, fine sensor noise / grain contributes to the
+high-pass residual. Synthetic camera blur can turn it into parallel streaks along the motion direction, visible in
+the fingerprint even at 3 px in the inspected examples. This may supply a shortcut that differs from the native video
+frames, so every photo is re-encoded after blurring. An exploratory codec comparison used 40 photos and 300
+sharp-labelled frames (100 from each of three videos), with PNG, JPEG qualities 70/80/90/95 and H.264 CRF 18/23/28/33.
+CRF 23 ranked closest to all three video references under the script's heuristic distance combining flat-region
+residual-to-edge ratio, near-zero residual share, 8 px block pattern and horizontal correlation. It was not closest
+on flat-region residual amplitude alone. These float64 ideal-residual statistics are proxies for smooth-region
+detail and coding structure, not isolated sensor-noise measurements or measurements of the published bfloat16 input.
+The observations do not imply that noise dominates all photo detail, that video codecs remove all noise, or that every
+photo has the same noise floor as every frame. H.264 also retains or introduces artefacts. The synthetic path shares
+the codec family and settings below with the frame domain, but a single encoded frame is intra-coded: it does not
+reproduce temporal artefacts from the P / B frames of a real group of pictures.
+
+The probe defines a flat-region proxy as mean `|d|` over the lowest-residual 30% of 16 × 16 cells; these are not
+independently annotated noise-only regions. `flat_edge` is this mean divided by the strongest 10% of cells' mean,
+`zero` is the image fraction with `|d| < 2 × 10⁻⁴`, `block8` compares residual steps at 8 px boundaries with those
+elsewhere, and `hcorr` is horizontal lag-one residual correlation in the selected flat cells. The exploratory distance,
+applied to group medians for a video reference `v` and photo encoding `p`, is
+`D = |ln(flat_edge_v / flat_edge_p)| + 5|zero_v − zero_p| + 5|ln(block8_v / block8_p)| + 2|hcorr_v − hcorr_p|`.
+CRF 23 gives `D = 3.1301 / 1.2301 / 1.2404` for the three reference groups. For comparison, the median flat-region
+mean `|d| × 10³` is 0.1384 / 0.1616 / 0.1764 for the videos, 0.7580 for uncoded photos, and
+0.3037 / 0.2202 / 0.1859 / 0.1644 for CRF 18 / 23 / 28 / 33. Higher CRFs can therefore be closer on that one
+amplitude statistic while differing more on the composite criterion. This unblurred-photo probe does not validate
+matching of the final mixed sharp / blurred training distribution. The public
+[aggregate table, definitions and arithmetic verifier](reproduction/README.md#codec-comparison) reproduce the ranking
+from the recorded medians; the image-measurement code and private per-image tables are not included.
 
 > original → flip / 90° rotation → camera motion blur in linear light → H.264 (x264 High, 4:2:0, BT.709, one frame) → decoded
 
@@ -482,12 +527,13 @@ matches the noise floor, not every artefact of a video:
 | class | L | reason |
 |---|---|---|
 | sharp | 0, 1, 2, 3 px | tolerance of a sharp *frame* (Section 6.1) |
-| not trained | 3–16 px | the ambiguous band is left to the frames |
-| blurred | 16, 20, 24, 30 px | from 16 px on, even extreme close-ups look blurred |
+| not trained | strictly 3 < L < 16 px | intermediate synthetic lengths are excluded; endpoints 3 and 16 px remain in training |
+| blurred | 16, 20, 24, 30 px | visually selected large-blur anchors in this material |
 
 **Systematic, not random variants.** Each class has a fixed grid of 4 lengths × 12 directions (every 15°) × 4 CRF values
 (20, 23, 26, 28) = 192 points. Every photo walks this grid with a stride co-prime to its size, so each epoch gives every
-photo a different variant and the grid points are evenly spread over the pool at every epoch. Samples are made on the fly.
+photo a different variant and hashed starting offsets spread the grid points across the pool. This does not guarantee
+exact balancing at each epoch. Samples are made on the fly.
 
 **Blur kernel.** The motion segment is convolved with the linear-interpolation (tent) reconstruction of the image, so the
 kernel is correct for small L (L = 1 px already blurs; its spread matches the theoretical value from 1 px on).
@@ -498,8 +544,9 @@ photo / frame marker.
 ### 6.1 Calibrating the sharp tolerance with the teacher
 
 60 held-out photos, each at L = 0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6 and 16 px (then H.264), were put to the teacher.
-The original is sharp by definition; on 7 of 60 originals the teacher did not answer `sss` (6× `ssb`, 1× `bss`), which
-is counted as a teacher error. Among the 53 photos whose original was `sss`:
+L = 0 is sharp-labelled by construction; on 7 of 60 originals the teacher did not answer `sss` (6× `ssb`, 1× `bss`).
+This is disagreement with the construction label, not proof of teacher error: the originals may already contain blur
+or defocus. The table is conditional on the 53 photos whose L = 0 variant was `sss`:
 
 | L (px) | 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 4 | 5 | 6 | 16 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -509,56 +556,66 @@ is counted as a teacher error. Among the 53 photos whose original was `sss`:
 
 At 16 px no photo stayed `sss` (over all 60 photos: 56 answered blurred to Q1).
 
-Up to 3 px the teacher answers almost as on the original (the remaining changes come from Q3, at the level of its own
-error on the originals). Q2 reacts from 4 px, Q1 notices motion blur from about 6 px. Consequences: declaring 0–3 px
-sharp does not contradict the frame labels; and `sss` frames may contain a 3–5 px blur the teacher did not notice.
+Up to 3 px the retained subset has answers close to its L = 0 baseline; most changes come from Q3. Q2 starts changing
+from 4 px and Q1's blurred answers increase at 6 px in this probe. This supports the chosen 0–3 px tolerance for these
+synthetic anchors. It also shows that `sss` can persist after a few pixels of added blur on some photos; it does not
+measure the native blur length of video frames or establish a universal perceptual threshold.
 
-The tolerable blur depends on the shot: an extreme close-up can take ~8 px without looking blurred, a long shot shows
-even 2 px. A single pixel threshold cannot fit both; this is why the photos give only the extremes and the middle band
-is learned from the frames.
+In the inspected blur ladders, some extreme close-ups still appeared usable at ~8 px while fine detail in some long
+shots showed changes at 2 px. These are visual observations, not validated thresholds by shot size. They motivated
+using only the synthetic anchor ranges while retaining naturally varying frame labels.
 
-### 6.2 Two groups calibrated to each other
+### 6.2 Aligning the synthetic anchors and frame labels
 
-- **Photos (discrete images):** the sharp side simulates the tolerance (edge thickness, 0–3 px), aligned with the
-  teacher but not stricter than it; the blurred side gives clean camera blur, from which the model may in principle also
+- **Photos (discrete images):** the sharp side uses a small added-blur tolerance (0–3 px), informed by the
+  teacher probe; the blurred side supplies controlled camera blur, from which the model may in principle also
   learn the smearing of the pattern caused by motion.
 - **Frames (native blur):** selected by the teacher's label, then filtered by the measurement (sharp side) to reduce
-  the label uncertainty.
-- The transition band is removed from both groups: 3–16 px on the photos, the uncertain codes and the weaker `sss`
-  frames on the frames.
+  suspected label uncertainty; the amount of noise reduction is not independently measured.
+- Intermediate synthetic lengths, strictly 3 < L < 16 px, are excluded. On frames, uncertain codes and lower-ranked
+  `sss` samples are excluded by their own selection rules; those rules do not impose an equivalent pixel-length band.
 
 ## 7. Model input
 
-**Edge fingerprint.** The edge detector is our own, taken from the earlier
-[RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling) study rather than a standard operator (Sobel,
-Laplacian), because that study had examined in detail the edge loss of the different mesh reconstructions and how
-blur patterns show in it. `m09` is the 9-node, uncalibrated biquadratic (Q2) mesh built from the pixel-centre samples
+**Edge fingerprint.** The fixed high-pass kernel is derived from the earlier
+[RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling) study. It was chosen because that study examined
+the edge loss of the different mesh reconstructions and how blur patterns show in it. `m09` is the 9-node,
+uncalibrated biquadratic (Q2) mesh built from the pixel-centre samples
 (corner and edge-midpoint nodes reconstructed from the neighbouring samples), integrated back over each source pixel's
-own area. On the identity grid this equals a fixed 3×3 kernel `K = [3 10 3; 10 92 10; 3 10 3] / 144` with replicated
+own area. In exact arithmetic, on the identity grid this equals a fixed 3×3 kernel `K = [3 10 3; 10 92 10; 3 10 3] / 144` with replicated
 borders (verified numerically to 2·10⁻¹⁵). The fingerprint is the part of the image this reconstruction does not keep:
-`d = Y − K * Y`, where `Y` is the linear-light luminance (Rec. 709 weights). In the mesh study this residual is exactly
-the edge and thin-feature contrast that the uncalibrated mesh smooths away and that area calibration restores. `d` keeps only the finest edge layer: a doubled contour or
-parallel bands along the motion direction appear as paired positive / negative lines.
+`d = Y − K * Y`, where `Y` is the linear-light luminance (Rec. 709 weights). Algebraically, `I − K` is a fixed
+weighted discrete Laplacian using cardinal and diagonal neighbours; its mesh origin does not make that operator family
+new. In the mesh study this residual is exactly
+the component that the uncalibrated mesh smooths away and that area calibration restores. This high-pass residual
+emphasises fine edges and thin features but also contains texture, noise and coding artefacts; it is not an isolated
+edge-only layer. A doubled contour or parallel bands along the motion direction can appear as paired positive /
+negative lines. The exact linear operator above describes the ideal residual; the published rounded implementation
+is described below.
 
 **Why the sign matters.** At an edge, `d` is negative on the darker side and positive on the brighter side. The sign of
-a line therefore shows the polarity of the edge (which side is brighter); the spacing of a pair follows the blur length,
-and its axis the orientation of the motion. The temporal direction of the motion (from A to B or from B to A) cannot be
-told: a uniform exposure kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
-geometry that a gradient magnitude or a spectrum loses, and it is a strong cue.
+a line therefore carries the polarity of the edge (which side is brighter). The width and spacing of signed structures
+can provide cues to blur extent and orientation, depending on the original structure and blur kernel; no exact kernel
+recovery is established here. The temporal direction of the motion (from A to B or from B to A) cannot be
+told: a uniform straight-motion kernel is symmetric, so reversing the path gives the same blur. The signed pair still encodes
+local polarity and geometry that a gradient magnitude or a global magnitude spectrum discards.
 
 **Numerical precision.** In training (and in all evaluations here) the model ran under bfloat16 autocast on the GPU, and
 the 3 × 3 convolution of the fingerprint ran in bfloat16 with it: its input, kernel and output were rounded to bfloat16,
 while `Y` stayed float32. In smooth regions this rounding is of the order of the fingerprint itself (on a test frame the
-median error is 7·10⁻⁵ against a median |d| of 2·10⁻⁴; a perfectly flat image gives inputs up to ±0.74 instead of 0). The
-published models were trained on this rounded fingerprint, and the published inference code reproduces the rounding
+median error is 7·10⁻⁵ against a median |d| of 2·10⁻⁴; a perfectly flat image gives inputs up to ±0.74 instead of 0).
+Kernel rounding can also change the exact DC response; the resulting operation is not the ideal linear, constant-annihilating
+operator above. The published models were trained on this rounded fingerprint, and the published inference code reproduces the rounding
 explicitly on every device. A model trained on the exact float32 fingerprint is future work; its results may differ.
 
 **What is seen in the fingerprint as blur grows** (visual observation): first the edges thicken. Beyond that the picture
 varies from one motion blur to another, depending on how cleanly the edge doubles: a clean displacement between two
 positions produces two edges, and the contour lines double regularly. On video frames the patterns span a much wider
 range than this clean case (uneven speed, curved paths, partial and repeated motion, coding). It is computed on the GPU, never
-stored. Per image it is divided by its 99.5th percentile magnitude (taken over the valid pixels of a fixed 2 × 2 sub-grid; floor 10⁻³) and companded as `sign · √|·|`, so only
-the shape of the pattern counts, not the overall sharpness level of the recording.
+stored. Per image it is divided by its 99.5th percentile magnitude (taken over the valid pixels of a fixed 2 × 2 sub-grid; floor 10⁻³) and companded as `sign · √|·|`.
+This reduces dependence on the residual's overall scale and emphasises spatial pattern. The floor and preceding
+bfloat16 rounding mean that the input is not strictly invariant to scale. For an ideal residual and a fixed valid
+sub-grid, the sampled percentile itself scales with a positive global multiplier.
 
 **RGB.** The plain image, ImageNet-normalised; the pretrained first layer is kept unchanged.
 
@@ -572,25 +629,27 @@ layer is adapted: its single fingerprint channel starts from the sum of the pret
 
 ### 7.1 Relation to known approaches
 
-*Based on the authors' knowledge; a systematic literature review is still to be done, and references will be added.*
+Residual inputs, local blur features and normalisation each have prior work; none is claimed as a new idea here.
 
-- **Residual-domain inputs in image forensics.** Camera identification and manipulation detection have long fed CNNs
-  not the image but a high-pass residual (fixed rich-model filters, or a first layer constrained to be high-pass), to
-  suppress the content and expose fine pixel-level traces. The edge fingerprint used here is this idea applied to blur,
-  with signed edge pairs (the doubled contour and the parallel bands of motion blur appear as paired positive / negative
-  lines, which a gradient magnitude would lose) and per-image normalisation (only the shape of the pattern counts).
-- **Gradient magnitude or Fourier spectrum as input.** A Sobel / Laplacian magnitude drops the sign of the edges; a
-  global spectrum drops where the blur is. Here the blur is often partial (one moving hand), video coding removes high
-  frequencies from sharp frames as well, and noise or coding artefacts add them to blurred ones; so the model decides per
-  16 px cell on the signed pattern, and a clearly blurred region can decide the image (soft maximum over the cells).
-- **Blur segmentation and kernel estimation.** Pixel-level blur maps are usually learned from small hand-labelled sets
-  and often do not separate defocus from motion blur; patch-wise motion-kernel estimation learns from synthetic straight
-  blur. The per-cell output here is a coarse blur map; a finer map would need a decoder.
-- **Less common, as far as the authors know:** labels from a frozen VLM teacher on real frames, with label noise reduced
-  by an independent measurement and with the two classes selected by different rules; photo pairs passed through the
-  video path (blur, then H.264) to match the frames' noise floor, with the sharp tolerance calibrated against the
-  teacher; the two groups calibrated to each other (photos give the extremes, frames the middle band); and an asymmetric
-  operating-point metric instead of accuracy.
+- **Residual-domain CNNs.** [Bayar and Stamm (2016)](https://doi.org/10.1145/2909827.2930786) use a constrained
+  convolution to form a signed prediction-error residual for image-manipulation detection, including Gaussian blur.
+  The present input is a fixed mesh-derived residual, within that established family rather than the first application
+  of residual learning to blur.
+- **Normalised sharpness inputs.** [Yu et al. (2017)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176632)
+  learn blind sharpness scores from grayscale patches with local mean subtraction and contrast normalisation. The
+  present experiment uses per-image percentile normalisation and a binary frame-level task with different supervision.
+- **Local blur evidence.** [Shi, Xu and Jia (2014)](https://www.cv-foundation.org/openaccess/content_cvpr_2014/papers/Shi_Discriminative_Blur_Detection_2014_CVPR_paper.pdf)
+  combine gradient, Fourier and learned local-filter features for blur maps. Here, signed residuals retain local
+  polarity that a gradient magnitude discards; the model produces a stride-16 logit grid and an image decision.
+  That grid has not been validated as a pixel-level blur segmentation or motion-kernel estimate.
+
+The specific empirical contribution is the comparison of the fixed, signed mesh residual as the sole image channel
+with RGB and grayscale under the documented filtered VLM supervision, frame selection and H.264-encoded synthetic
+anchor recipe. On the reported validation material, the residual run reaches a discrimination level close to the
+full-image runs. This result applies to the published bfloat16-rounded input; an exact float32-residual model has not
+been tested. It supports the usefulness of this representation on this dataset, not priority for the component
+ideas or their combination, statistical equivalence of the runs, or universal blur detection. Further related work and
+the limits of comparison are listed in the README.
 
 ## 8. Model, loss and sampling
 
@@ -603,13 +662,15 @@ blurred region matters. The cell grid is the output sampling (16 px), not a vali
 segmentation. Cells covered less than half by valid pixels are excluded.
 
 **Loss.** Image-level binary cross-entropy plus a dense term (weight 0.5) on cells that contain edges: on photos every
-edge cell carries the image label (a camera motion moves every edge); frames have no dense term (where the blur is in a
-frame is unknown).
+edge cell carries the synthetic image label, because the injected kernel is global. This is a training assumption,
+not independently verified local sharpness ground truth; an L = 0 original may already have blurred regions. Frames
+have no dense term (where the blur is in a frame is unknown).
 
-**Sampling.** Each epoch draws 12,000 samples from four strata: sharp frames, blurred frames, sharp photos and blurred
+**Sampling.** Each epoch nominally draws 12,000 samples from four strata: sharp frames, blurred frames, sharp photos and blurred
 photos, 3,000 each. Inside a stratum every sample is equally likely and drawn without repetition until the stratum is
 exhausted, then reshuffled. There is no weighting by video or source: the selection decides which frames take part, the
-sampler does not re-weight them. Flips and 90° rotations are applied per sample (lossless).
+sampler does not re-weight them. Flips and 90° rotations are applied per sample (lossless). Shape-bucketed batches
+discard incomplete bucket tails, so nominal draws and pass counts are not exact numbers of optimiser-visible images.
 
 | stratum | pool | one full pass | passes in 100 epochs |
 |---|---|---|---|
@@ -622,7 +683,7 @@ overlay does not make a blurred frame sharp.
 
 ### 8.1 Repetition: passes over the data, and frames as permutations of shots
 
-An epoch draws 3,000 samples from each of the four strata, without repetition inside a stratum until it is exhausted,
+An epoch nominally draws 3,000 samples from each of the four strata, without repetition inside a stratum until it is exhausted,
 then reshuffled. The strata differ in size, so they are revisited at different rates:
 
 | stratum | pool (training) | one full pass | passes in 100 epochs | what a repetition is |
@@ -632,7 +693,8 @@ then reshuffled. The strata differ in size, so they are revisited at different r
 | blurred frames (`bbb`, `bsb`) | 58,364 | ~19.5 epochs | ~5.1 | the same frame |
 
 **Why the analysis counts passes over the blurred frames.** The blurred frames are the largest pool and the slowest
-cycle: only after one blurred-frame pass has the model seen every training sample at least once. Within one such pass
+cycle: a full nominal blurred-frame pass covers the slowest sampler pool. Bucket tails and the resume behaviour below
+mean that this does not guarantee optimiser exposure to every sample. Within one such nominal pass
 the sharp frames are revisited about 4.4 times and the photos about twice. The validation curves oscillate with these
 cycles, so results are compared as means per blurred-frame pass, not as single epochs.
 
@@ -648,29 +710,31 @@ Section 3):
 | blurred frames per sharp frame in these paired shots | ~3.9 |
 | contiguous runs of consecutive blurred frames (≤ 0.05 s apart) | 11,875; median 2 frames, mean 4.9, 90th percentile 11, max 523 |
 
-Consecutive blurred frames 33 ms apart are permutations of one motion; each run is close to one blur situation. So the
-58,364 blurred frames come from about 11,900 runs in 1,943 shots, and over 100 epochs each run is drawn about 25 times
+Consecutive blurred frames are correlated samples of a motion sequence; a contiguous run is a useful heuristic unit,
+not necessarily one fixed blur situation. The 58,364 blurred frames come from about 11,900 runs in 1,943 shots, and over 100 epochs each run is drawn about 25 times
 on average (in different neighbouring frames). In the 1,183 paired shots each sharp frame stands against about four
 blurred frames of the same scene, light, camera and coding, which is the native counterpart of a photo's sharp /
-blurred pair. The number of distinct blur situations, not the number of blurred frames, is therefore what bounds what
-the model can learn about unseen videos.
+blurred pair, though the native pairs also differ in content and are not controlled blur interventions. These counts
+describe dependence and repetition in the data; they do not give an independent sample count or a formal bound on
+generalisation to unseen videos.
 
 ## 9. Evaluation
 
-- **Photo level (exact injected blur length):** AUC on held-out photos, 2,000 sharp and 2,000 blurred, one fixed variant each.
+- **Photo level (exact injected blur length):** AUC on held-out validation photos, 2,000 construction-sharp and
+  2,000 blurred, one fixed variant each. These measure agreement with the synthetic-anchor labels.
 - **Frame level (teacher labels):** AUC, and the **share of sharp frames kept at a threshold that catches 90%, 95% or 98% of
   the blurred frames**. The 98% figure is the strict operating point of the asymmetric cost.
-- These figures measure **agreement with the teacher**, not strictness: the teacher's `sss` frames include overlooked
-  blur, which a stricter model rejects rightly.
+- Frame figures measure **agreement with the retained teacher labels**, not independent human accuracy or perceptual
+  strictness. A rejection of `sss` can reflect stricter blur sensitivity, another degradation or a detector error;
+  agreement alone does not distinguish these explanations.
 - **A disagreement with the teacher is not by itself an error of the detector.** It can be a justified stricter (or more
   tolerant) decision of a detector that has learned different principles, an error of the teacher, or an error of the
   detector; without ground truth, which of these it is can only be decided case by case.
   The teacher is a vision-language model that analyses the picture and weighs its composition; the ConvNeXt detector
-  learns patterns, and being pretrained on natural images, it is more at home with an RGB or grayscale picture than with
-  the edge fingerprint. The teacher's answers (Q1–Q3) act on the dataset only indirectly, through the strongly filtered
-  selection of the training frames (Sections 4–5). In the tests the teacher's label is a reference, not ground truth:
-  it gives a direction and points to contradictions. The disagreements are then looked at by eye, as a screening test,
-  to see which side is closer to reality.
+  learns patterns; ImageNet pretraining alone does not establish why the input modes perform differently. The teacher's
+  answers (Q1–Q3) supply the retained training labels through the selection rules (Sections 4–5). In evaluation the
+  teacher's label is a reference, not independent ground truth. Visual inspection of disagreements is a qualitative
+  screening step, not a blinded human accuracy assessment.
 - **Measurement-agreement subsets** ("confident" frames below): frames whose teacher label agrees with a second,
   correlated criterion, the measurement; the measurement does not prove the label (sharp: `sss`, rank ≤ 0.2, regional
   motion ≤ 4 px, camera ≤ 1.5 px; blurred: `bbb`/`bsb`, rank ≥ 0.8, regional motion ≥ 10 px). 533 sharp and 1,788 blurred
@@ -697,10 +761,27 @@ the model can learn about unseen videos.
   None of the models reaches 100% on its own training frames. RGB learns its training images fastest; the edge
   fingerprint starts lowest but reaches the highest training level of the two colourless inputs; grayscale has the
   smallest gap early on but the lowest training level at the end.
+- **Validation uncertainty.** The released [paired video-cluster bootstrap](reproduction/uncertainty/README.md)
+  uses the saved epoch-99 scores on all 6,602 validation frames, sampling the 11 video groups uniformly with replacement
+  for 5,000 shared draws (seed 20261007), keeping each selected group's frames together. Pooled frame-weighted AUC and
+  retention/recall receive percentile 95% intervals; model differences use the same draws. Two retention analyses are
+  distinguished: thresholds fixed at the original saved-score validation calibration, and thresholds recalibrated
+  within each bootstrap sample. The README reports the latter at 95% recall. The former also reports realised recall,
+  which varies between samples. These are conditional on one saved model per input and teacher labels, with only
+  11 groups and six-decimal stored scores; they do not measure training-seed variation, independent label accuracy or
+  unseen-domain performance. The pairwise difference intervals for AUC and recalibrated retention at 95% and 98%
+  recall include zero; this is not an equivalence test. The repeatedly inspected validation cohort is not an untouched
+  test set. No new inference or training was run for this analysis.
+- **External evaluation and selection sets.** The README reports the GoPro pairs, real-frame sets and photo blur
+  ladders separately from the internal train / validation / test split. The alternative checkpoints were chosen using
+  these external sets; they are therefore selection data for those checkpoints. Their scores are descriptive external
+  evaluations, not an untouched final-test estimate for the selected alternatives. The 7-group internal test split has
+  not yet been evaluated. Thresholds are taken from the internal validation data, unless explicitly stated otherwise.
 - **Cross-test.** Every model is also given the finished input of the other two models, its own input processing
   bypassed and nothing converted (channels only copied or selected to fit the first layer), on the same test material
-  and at its own operating points. This separates what a model has learned from what its input contains. Results and
-  three-set diagrams: README, "Cross-test".
+  and at its own operating points. This measures transfer and sensitivity to a changed input representation and
+  distribution. It does not isolate information availability, the causal features used by the model, or calibration
+  equivalence. Results and three-set diagrams: README, "Cross-test".
 - The validation curve oscillates with the data cycles (Section 8); single epochs are not compared, but averages over
   blur passes.
 
@@ -715,7 +796,7 @@ the model can learn about unseen videos.
 | optimiser | AdamW, weight decay 0.05, gradient clipping 1.0 |
 | learning rate | trunk 1·10⁻⁴, head 1·10⁻³; warm-up 0.5 epoch; single cosine to 1% |
 | batch | 8 images × 2 accumulation steps (effective 16), batches bucketed by image shape |
-| epoch | 12,000 samples, ~13.6 min including validation (~25 images/s) |
+| epoch | 12,000 nominal draws before incomplete shape-bucket tails, ~13.6 min including validation (~25 images/s) |
 | runs | no early stopping; every epoch saved |
 | labelling (VLM teacher) | Qwen3.5-4B-bf16, on the same GPU; three questions per image, batches of 4, greedy decoding |
 | labelling throughput | ~2,900 images/h in a standalone run on 1080p photos (no other load on the machine) |
@@ -724,6 +805,14 @@ the model can learn about unseen videos.
 **Provenance.** Each publishable run records, at start, the SHA-256 of every source file, the configuration, the index,
 the frame selection and the initial weights, plus the software and hardware versions; a resume with changed code is
 refused.
+
+The three reported 100-epoch runs share index SHA-256
+`1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810` and frame-selection SHA-256
+`5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003`. These identify the fixed inputs to those runs;
+later source-database additions do not update them or the results reported here.
+The index and selection hashes identify records and labels, not a complete checksum manifest of every source image's
+pixels. The available provenance therefore does not independently prove historical pixel immutability or the absence
+of unrecognised near-duplicates across distinct source groups.
 
 ## 11. The publishable runs
 
@@ -734,9 +823,10 @@ refused.
 | grayscale, 100 epochs | the image without colour (linear luminance) | at the level of the other two by the 3rd pass (AUC 0.945, 84.5 / 73.4 / 55.2%); ends at AUC 0.944, 84.0 / 71.6 / 54.6% |
 
 All three inputs reach a similar level by the third pass over the blurred frames. The training results show that the
-information needed to recognise the blur is present in all three inputs; they do not show which property carries it or
-whether the models use the same one. This is examined by the cross-test, in which every model is given the finished
-input of the other models (Section 9).
+information sufficient for the reported label discrimination is present in all three inputs; they do not show which
+property carries it, whether the models use the same one, or statistically equivalent performance. The cross-test
+probes transfer when every model is given the finished input of the other models (Section 9); it does not resolve those
+causal questions.
 
 **Choice of pre-training.** Before the publishable runs, a ConvNeXt-Small with DINOv3 pre-training was trained with the
 same recipe on the edge fingerprint (60 epochs). At this learning rate it stayed behind the ImageNet-pretrained model in
@@ -760,7 +850,7 @@ the code at the resume was verified to be identical to the code at the start.
 
 | run | cause | resumed at | lost and redone |
 |---|---|---|---|
-| RGB | operating-system restart | epoch 33, batch 256 of 750 (optimiser step 24,700) | the steps after the last save (at least 40) |
+| RGB | operating-system restart | epoch 33, physical batch 256 (optimiser step 24,700) | the steps after the last save (at least 40) |
 | edge fingerprint | data-loader error | epoch 70, batch 378 (step 52,300) | the steps after the last save |
 | grayscale | the same data-loader error | epoch 70, batch 378 (step 52,300) | the steps after the last save |
 
@@ -769,21 +859,23 @@ same samples in the same order; in the grayscale run the new retry repeated the 
 result.
 
 *What a resume restores and what it does not.* Restored: the model and optimiser state, the step counter and with it the
-learning-rate schedule, and the random-number states of PyTorch and NumPy. Not restored: the sampler's position inside
-its draws without replacement, i.e. the shuffled order of each stratum and how far it had got. The resumed sampler starts
-every stratum with a fresh shuffle (still derived from the seed and the epoch). Consequences:
+learning-rate schedule, and the PyTorch CPU and NumPy global random-number states. CUDA RNG states and the sampler's
+independent generator state are not saved. The sampler's position inside its draws without replacement (the shuffled
+order of each stratum and how far it had got) is not restored. Resume rebuilds an epoch with a fresh sampler and skips
+the recorded number of physical batches. Consequences:
 - the remaining batches of the interrupted epoch, and all later epochs, contain other samples in another order than an
   uninterrupted run would;
-- in each stratum the pass that was interrupted is cut short: the samples it had already drawn are drawn again in the
-  new pass, so they receive one more exposure than the rest (at most one partial pass per stratum over the whole run);
-- unchanged are the rules that depend only on the seed, the epoch and the sample: the shape grouping of the batches,
-  the flips and rotations, the photo variant (blur length, direction, CRF) and the watermark-mask choice; only which
-  sample meets which draw changes.
+- some previously seen samples may be revisited and others skipped; stratum exposure counts can differ from an
+  uninterrupted run;
+- the same augmentation and shape-bucketing rules remain in force, but changed draws can change batches, rotations
+  and flips; the photo synthesis recipe (blur length, direction, CRF) and watermark choices remain deterministic for
+  each sample and epoch.
 
 The edge-fingerprint and the grayscale runs were interrupted at the same point and resumed with the same seed, so they
 saw the same sequence of samples over the whole run; the RGB run follows the same sequence up to epoch 33, batch 256,
 and a different one afterwards. Even without interruptions the runs would not be bit-for-bit reproducible: the
-convolution algorithms are auto-tuned on the GPU and bfloat16 arithmetic is not deterministic.
+convolution algorithms are auto-tuned on the GPU and deterministic execution was not enforced. Reduced-precision
+rounding can amplify differences in operation order; bfloat16 rounding itself is not inherently random.
 
 *The data-loader error.* One synthetic photo sample (a 16 px blurred variant, rotated by 90°, CRF 23, in epoch 70) had
 raw pixel bytes that happened to begin with the three characters "ID3". The video encoder's input parser takes such a
@@ -796,7 +888,11 @@ before this fix.
 ## 12. Data availability
 
 The dataset is **not published**: it was built from copyrighted videos and photo albums. No images, frames, crops or
-derived images (edge images, heat maps) are published. Published are the method, metrics, run provenance, the inference
-code and trained weights; the training, labelling, selection and evaluation code and the configurations will be published
-after they have been cleaned of internal references. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
+derived images from that dataset (edge images, heat maps) are published. Published are the method, reported metrics,
+inference code and trained weights. The [public evidence package](reproduction/README.md) supplies codec medians and
+definitions, aggregate split/provenance records, an arithmetic verifier, reproducible SVG summaries and a validation
+bootstrap procedure with its aggregate results. The GoPro mirror's public image-file identities are recorded separately.
+Full start manifests, training, labelling, selection and image-measurement/evaluation code, and complete configurations
+are not included; the aggregate package does not reproduce private measurements or training. This limits independent
+reproduction of the reported training results. The demonstration images of the repository come from openly licensed sources (CC BY 3.0 and CC0); their attribution and
 the changes made are listed next to them.

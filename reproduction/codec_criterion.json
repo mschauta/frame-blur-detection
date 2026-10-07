@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "experiment": "Exploratory codec comparison on 40 original photos and 100 teacher-sss frames from each of three video groups",
+  "input": "codec_group_medians.csv",
+  "aggregate": "Median of each per-image statistic within a group; published at the precision recomputed from the original per-image numeric records",
+  "distance": {
+    "flat_edge_log_ratio_weight": 1.0,
+    "zero_absolute_difference_weight": 5.0,
+    "block8_log_ratio_weight": 5.0,
+    "hcorr_absolute_difference_weight": 2.0,
+    "logarithm": "natural"
+  },
+  "residual": {
+    "description": "Ideal residual d = Y - K*Y, with nearest/replicated borders; double-precision arithmetic rather than the detector's published bfloat16-rounded fingerprint",
+    "kernel_numerator": [[3, 10, 3], [10, 92, 10], [3, 10, 3]],
+    "kernel_denominator": 144,
+    "linear_luminance_weights": [0.2126729, 0.7151522, 0.0721750]
+  },
+  "metric_definitions": {
+    "cell_size_pixels": 16,
+    "image_border_handling": "Discard incomplete 16-pixel cells at the bottom/right before computing statistics",
+    "flat_cells": "Cells whose mean absolute residual is at or below the 30th percentile",
+    "strong_cells": "Cells whose mean absolute residual is at or above the 90th percentile",
+    "flat_e3": "1000 times mean absolute residual over pixels in flat cells",
+    "edge_e3": "1000 times mean absolute residual over pixels in strong cells",
+    "flat_edge": "Per-image flat_e3 / max(edge_e3, 1e-9), then median of those ratios; not the ratio of the group medians",
+    "zero": "Share of all cropped-image pixels with absolute residual below 2e-4; not restricted to flat cells",
+    "block8": "Sum of mean absolute horizontal/vertical residual steps at 8-pixel grid boundaries divided by the corresponding sum elsewhere",
+    "hcorr": "Horizontal lag-one Pearson correlation of the signed residual, selecting pairs whose left pixel lies in a flat cell; zero if either selected vector has zero standard deviation"
+  },
+  "encoding_settings": {
+    "photo_png": "Decoded original-photo pixels, with no injected camera blur in this comparison",
+    "jpeg_qualities": [70, 80, 90, 95],
+    "jpeg_subsampling": "4:2:0",
+    "h264_crfs": [18, 23, 28, 33],
+    "h264": "x264 High profile, medium preset, yuv420p, BT.709 limited range, one encoded frame decoded to RGB"
+  },
+  "reference_result": {
+    "nearest_variant_each_video": {
+      "video_A": "photo_crf23",
+      "video_B": "photo_crf23",
+      "video_C": "photo_crf23"
+    },
+    "nearest_distances": {
+      "video_A": 3.130084101780406,
+      "video_B": 1.2301285186070694,
+      "video_C": 1.2404263162543436
+    }
+  },
+  "limitations": [
+    "The distance is a chosen exploratory criterion with fixed weights, not a calibrated perceptual or statistical distance.",
+    "Frames from the same video are correlated. No confidence intervals or population-level noise-floor equivalence are established.",
+    "The data permit rechecking arithmetic on the recorded medians, not independent image extraction, encoding or per-image measurement.",
+    "This comparison used original photos without injected blur and does not quantify the separate visual hatching observation.",
+    "The choice is conditional on these 40 photos, three video groups, tested settings, metrics and weights."
+  ]
+}

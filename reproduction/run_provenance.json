@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "Sanitised aggregate account of existing local start records, source snapshots and resume records; private training inputs and source archives are not distributed here",
+  "shared_input_index_sha256": "1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810",
+  "shared_frame_selection_sha256": "5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003",
+  "runs": [
+    {
+      "input": "RGB",
+      "epochs": 100,
+      "seed": 20261004,
+      "index_sha256": "1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810",
+      "frame_selection_sha256": "5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003",
+      "code_sha256": "e9ba1b935a9eb715d977a2e5d815e13237eff77170a74959172511cad7647538",
+      "resume_record_count": 2,
+      "all_resume_code_digests_match_start": true,
+      "local_audit_index_and_selection_match_start": true
+    },
+    {
+      "input": "signed_mesh_residual",
+      "epochs": 100,
+      "seed": 20261004,
+      "index_sha256": "1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810",
+      "frame_selection_sha256": "5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003",
+      "code_sha256": "e9ba1b935a9eb715d977a2e5d815e13237eff77170a74959172511cad7647538",
+      "resume_record_count": 2,
+      "all_resume_code_digests_match_start": true,
+      "local_audit_index_and_selection_match_start": true
+    },
+    {
+      "input": "grayscale",
+      "epochs": 100,
+      "seed": 20261004,
+      "index_sha256": "1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810",
+      "frame_selection_sha256": "5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003",
+      "code_sha256": "cc46e6248a89fde555be0bc239be0edcdf3f7567e8ca248aad5bb2930f998c6c",
+      "resume_record_count": 2,
+      "all_resume_code_digests_match_start": true,
+      "local_audit_index_and_selection_match_start": true
+    }
+  ],
+  "existing_local_records": ["start record with SHA-256 digests", "source-code and configuration archive", "append-only start/resume records"],
+  "integrity_controls": [
+    "The recorded training configuration contains the index SHA-256; a changed configuration or index prevents resuming that run.",
+    "Published-run mode rejects a resume when the source-code digest differs from the original start digest.",
+    "The input index and frame selection still matched all three recorded start hashes during this audit. Later database labels therefore do not change these indexed training samples."
+  ],
+  "limitations": [
+    "The verification script checks consistency of the released aggregate records. It cannot independently hash private files that are not included.",
+    "The recorded digests do not provide a complete per-image checksum manifest for historical source pixels.",
+    "Source code, complete configurations, sampler state and raw training data are not provided by this package; full training reproduction remains unavailable.",
+    "No private paths, photo/video names, frame identifiers or held-out outcomes are included."
+  ]
+}

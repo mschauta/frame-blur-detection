@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "study_snapshot": "The fixed input index shared by the three published 100-epoch runs; later database labelling is outside this sample pool",
+  "split_targets": {"train": 0.70, "validation": 0.15, "heldout_test": 0.15},
+  "split_method": "Deterministic seeded assignment of whole declared groups, searching 4000 candidate assignments for validation/test sample shares near the targets; approximate shares, not exact per-image random fractions",
+  "split_seed": "blurtrainer-round1",
+  "sources": [
+    {
+      "source": "camera_EXIF_photos",
+      "originals": {"total": 5194, "train": 3587, "validation": 803, "heldout_test": 804},
+      "declared_group_key": "shoot_group",
+      "groups": {"total": 200, "train": 133, "validation": 32, "heldout_test": 35}
+    },
+    {
+      "source": "border_cropped_photos",
+      "originals": {"total": 43372, "train": 29736, "validation": 6818, "heldout_test": 6818},
+      "declared_group_key": "album",
+      "groups": {"total": 917, "train": 625, "validation": 144, "heldout_test": 148}
+    },
+    {
+      "source": "reviewed_4K_frames",
+      "originals": {"total": 231, "train": 161, "validation": 35, "heldout_test": 35},
+      "declared_group_key": "album",
+      "groups": {"total": 17, "train": 11, "validation": 3, "heldout_test": 3}
+    }
+  ],
+  "totals": {
+    "camera_photos": 48566,
+    "anchor_originals": 48797,
+    "train_originals": 33484,
+    "validation_pool_originals": 7656,
+    "heldout_test_pool_originals": 7657
+  },
+  "evaluation_cap_originals_per_split": 2000,
+  "indexed_originals": {"train": 33484, "validation": 2000, "heldout_test": 2000},
+  "recipe_rows_per_indexed_original": {"sharp": 1, "blurred": 1},
+  "rows_per_class": {"train": 33484, "validation": 2000, "heldout_test": 2000},
+  "heldout_originals_omitted_after_caps": 11313,
+  "omitted_originals_returned_to_training": 0,
+  "leakage_controls": {
+    "assignment_before_recipe_rows": true,
+    "sharp_and_blurred_recipes_share_original_group_and_split": true,
+    "index_build_asserts_no_declared_group_crosses_splits": true,
+    "locally_checked_train_validation_original_crossings": 0,
+    "locally_checked_train_validation_group_crossings": 0
+  },
+  "frame_snapshot": {
+    "processed_video_files": 37,
+    "duplicate_copy_files_excluded_by_selector": 1,
+    "distinct_video_groups": 36,
+    "reported_teacher_labelled_frames_before_selection": 374019,
+    "eligible_labelled_frames_in_selection_summary": 371743,
+    "framing_units_in_selection_summary": 3819,
+    "video_groups": {"train": 18, "validation": 11, "heldout_test": 7},
+    "selected_train": {"sharp": 13198, "blurred": 58364},
+    "selected_validation": {"sharp": 3301, "blurred": 3301},
+    "selected_heldout_test": {"sharp": 3296, "blurred": 3296},
+    "heldout_test_evaluation_status": "Not evaluated by this audit; counts are split metadata, not outcomes"
+  },
+  "limitations": [
+    "Only aggregate group counts are released. Exact random group assignments cannot be reconstructed without the private group identifiers and sizes.",
+    "Declared-group and original-identity separation does not prove the absence of unrecognised visually similar material across different groups.",
+    "The shoot_group generation process was not independently established from a source script; this audit verifies consumption of the manifest field.",
+    "No individual held-out image, frame, prediction or score was inspected."
+  ]
+}

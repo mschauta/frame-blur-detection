@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1120" viewBox="0 0 1400 1120" role="img" aria-labelledby="title desc">
+<title id="title">Képkockák elmosódásának felismerése</title>
+<desc id="desc">A frame-metrikák a VLM címkéivel való egyezést mérik, nem objektív pontosságot.</desc>
+<rect width="1400" height="1120" fill="#111b2b"/>
+<g font-family="DejaVu Sans, Arial, sans-serif">
+<text x="40" y="65" font-size="43" fill="#f2f6fc" font-weight="700" text-anchor="start">Képkockák elmosódásának felismerése</text>
+<text x="40" y="107" font-size="23" fill="#b6c7dd" font-weight="400" text-anchor="start">Három képi bemenet • rögzített kísérleti anyag • közölt validációs eredmények</text>
+<text x="40" y="154" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">KÍSÉRLETI ANYAG ÉS CÍMKÉK</text>
+<rect x="40" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="58" y="209" font-size="22" fill="#72b7ff" font-weight="700" text-anchor="start">Történeti videós snapshot</text>
+<text x="58" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">37 feldolgozott videófájl</text>
+<text x="58" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">36 egyedi videócsoport</text>
+<text x="58" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Egy duplikált másolat kihagyva</text>
+<rect x="485" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="503" y="209" font-size="22" fill="#c4adff" font-weight="700" text-anchor="start">Natív blur, köztük motion blur</text>
+<text x="503" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Szűrt VLM-referenciacímkék</text>
+<text x="503" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">A blur típusai nincsenek szétválasztva</text>
+<text x="503" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">A mérés válogat; nem címkéz át</text>
+<rect x="930" y="175" width="430" height="160" rx="14" fill="#1b2a40"/>
+<text x="948" y="209" font-size="22" fill="#6be1ce" font-weight="700" text-anchor="start">Szintetikus konstrukciós címkék</text>
+<text x="948" y="247" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Hozzáadott L = 0–3 px: éles címke</text>
+<text x="948" y="278" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Hozzáadott L = 16–30 px: blur címke</text>
+<text x="948" y="309" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Szigorúan 3 &lt; L &lt; 16 kizárva</text>
+<text x="40" y="375" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">ÖSSZEHASONLÍTOTT BEMENETEK, AZONOS TANÍTÁSI RECEPT</text>
+<rect x="40" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="58" y="431" font-size="24" fill="#72b7ff" font-weight="700" text-anchor="start">RGB kép</text>
+<text x="58" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Teljes színes kép</text>
+<text x="58" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">ImageNet-normalizálás</text>
+<text x="58" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">ConvNeXt-Small gerincháló</text>
+<rect x="485" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="503" y="431" font-size="24" fill="#c4adff" font-weight="700" text-anchor="start">Szürkeárnyalatos kép</text>
+<text x="503" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Lineáris fényben számított luminancia</text>
+<text x="503" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">sRGB-kódolás, három csatorna</text>
+<text x="503" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Teljes térbeli frekvenciasáv</text>
+<rect x="930" y="397" width="430" height="156" rx="14" fill="#1b2a40"/>
+<text x="948" y="431" font-size="24" fill="#6be1ce" font-weight="700" text-anchor="start">Előjeles él-ujjlenyomat</text>
+<text x="948" y="466" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Meshből származó residual Y − K * Y</text>
+<text x="948" y="497" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Publikált bfloat16-kerekítés</text>
+<text x="948" y="528" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">Képenkénti percentilis és floor</text>
+<text x="40" y="595" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">99. EPOCH • 6 602 VALIDÁCIÓS FRAME • 11 NEM TANÍTOTT VIDEÓCSOPORT</text>
+<rect x="40" y="616" width="1320" height="213" rx="14" fill="#1b2a40"/>
+<text x="62" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="start">Bemenet</text>
+<text x="493" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Frame AUC</text>
+<text x="818" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Élesek megtartva, r95</text>
+<text x="1148" y="652" font-size="20" fill="#b6c7dd" font-weight="400" text-anchor="middle">Méréssel egyező AUC</text>
+<text x="62" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="start">RGB</text>
+<text x="493" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">0.952</text>
+<text x="818" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">74.9%</text>
+<text x="1148" y="701" font-size="26" fill="#72b7ff" font-weight="700" text-anchor="middle">0.992</text>
+<text x="62" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="start">Szürkeárnyalatos</text>
+<text x="493" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">0.942</text>
+<text x="818" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">70.0%</text>
+<text x="1148" y="750" font-size="26" fill="#c4adff" font-weight="700" text-anchor="middle">0.993</text>
+<text x="62" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="start">Él-ujjlenyomat</text>
+<text x="493" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">0.949</text>
+<text x="818" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">73.9%</text>
+<text x="1148" y="799" font-size="26" fill="#6be1ce" font-weight="700" text-anchor="middle">0.990</text>
+<text x="40" y="861" font-size="21" fill="#b6c7dd" font-weight="400" text-anchor="start">A frame-metrikák a VLM címkéivel való egyezést mérik, nem objektív pontosságot.</text>
+<text x="40" y="903" font-size="21" fill="#72b7ff" font-weight="700" text-anchor="start">MIT TÁMASZT ALÁ AZ ÖSSZEHASONLÍTÁS?</text>
+<text x="40" y="940" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Ezen az anyagon az előjeles residual önmagában</text>
+<text x="40" y="969" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">a teljes képi futásokhoz közeli diszkriminációt ad.</text>
+<text x="40" y="998" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Bemenetenként egy tanítási seed; a hasonló</text>
+<text x="40" y="1027" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">értékek nem bizonyítanak statisztikai ekvivalenciát.</text>
+<text x="731" y="940" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">RGB ↔ grayscale: jó transzfer, eltérő kalibráció.</text>
+<text x="731" y="969" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">A residual textúrát és artefaktumokat is tartalmaz.</text>
+<text x="731" y="998" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">Az ideális I − K súlyozott diszkrét Laplace-operátor.</text>
+<text x="731" y="1027" font-size="22" fill="#b6c7dd" font-weight="400" text-anchor="start">A kerekítés és a floor korlátozza a skálainvarianciát.</text>
+<text x="40" y="1072" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">A 7 csoportos belső teszt még nincs kiértékelve. A külső anyagokon checkpointot is választottunk.</text>
+<text x="40" y="1093" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">L = 0: nincs hozzáadott blur; az eredeti fotó ettől még lehet elmosódott vagy defókuszos.</text>
+<text x="40" y="1114" font-size="17" fill="#b6c7dd" font-weight="400" text-anchor="start">Generált SVG: reproduction/render_figures.py • Részletes definíciók és korlátok: METHOD.md</text>
+</g>
+</svg>

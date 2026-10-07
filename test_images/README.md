@@ -10,8 +10,10 @@ Two groups:
   README for the measured results).
 
 Scores are the models' blur score (sigmoid output; not a calibrated probability); in brackets the decision at the three
-stored operating points r90 / r95 / r98 (`s` = sharp, `b` = blur). The scores were computed in batches with bfloat16 on a GPU; a single image on another device can differ in the
-third decimal. The demo uses r95 by default; the decision can depend
+stored operating points r90 / r95 / r98 (`s` = sharp, `b` = blur). The scores were computed in batches with bfloat16 on
+a GPU. Device, precision and batching can change the scores; the printed decimals do not imply reproducibility within
+0.001. Some CPU/GPU comparisons differed by about 0.01–0.04 (README), which is an observed range rather than a bound.
+The demo uses r95 by default; the decision can depend
 on the operating point, as `tos_05_4f_00456` shows. Teacher code: Q1 Q2 Q3 (METHOD §4); `sbb` = no blur seen, but not
 sharp.
 
