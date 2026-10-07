@@ -1,8 +1,8 @@
 # Frame Blur Detection
 
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
-degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The results so far
-come from a narrow, people-centred material (37 processed video files, representing 36 unique video groups: one file
+degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The reported
+100-epoch runs use a fixed, narrow, people-centred snapshot (37 processed video files, representing 36 unique video groups: one file
 duplicates another under a different name) and its validation split; universality is the aim, not yet a demonstrated
 property. It is the first stage of a longer pipeline
 (selecting sharp frames → recognising the type of blur → restoring blurred frames).
@@ -35,8 +35,8 @@ This page summarises the approach and the results.
 | part | what | details |
 |---|---|---|
 | frames | real, native blur, including motion blur, from handheld-camera videos; blur types are not separated; labelled by a frozen VLM teacher (Qwen3.5-4B-bf16) with three yes / no questions; sharp = `sss` (all three agree), blurred = `bbb` / `bsb` (Q1 sees blur), the other codes left out | METHOD §3–5 |
-| label noise | an independent motion and sharpness measurement ranks frames within a shot and keeps only the best sharp frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
-| photos | a known injected camera-blur length at the two extremes: 0–3 px = construction sharp label, 16–30 px = blurred label; `3 < L < 16` px is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to bring the measured flat-region noise floor closer to that of the sampled video frames | METHOD §6 |
+| label noise | a separate non-learned motion and sharpness measurement ranks frames within a shot and selects better-ranked sharp-labelled frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
+| photos | a known injected camera-blur length at the two extremes: 0–3 px = construction sharp label, 16–30 px = blurred label; `3 < L < 16` px is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to reduce the residual-statistics gap to the sampled video frames | METHOD §6 |
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
 | model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
@@ -50,9 +50,10 @@ This page summarises the approach and the results.
 *Top two rows: a demo photo (UHD-IQA, CC0) with 4 px and 16 px of simulated camera blur. Without coding, the camera
 noise of the photo is smeared by the blur into fine parallel streaks along the motion, a hatched pattern that is
 conspicuous in the edge fingerprint even at 4 px and a potential shortcut for the model. After one H.264 frame
-(CRF 23) the streaks are strongly suppressed in this example. In the flat-region measurements of METHOD §6, CRF 23
-came closest among the tested settings to the sampled video frames' noise floor; this is not a guarantee for all
-photos, textures or video codecs (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
+(CRF 23) the streaks are strongly suppressed in this example. In the exploratory comparison of METHOD §6, CRF 23
+ranked closest under a heuristic combining flat-region residual, near-zero, block and horizontal-correlation statistics;
+it was not closest on flat-region amplitude alone. These residual measures are proxies, not isolated sensor-noise
+measurements or a guarantee for all codecs (bottom row: a blurred raw camera frame of Tears of Steel, (CC) Blender Foundation | mango.blender.org,
 CC BY 3.0, prepared as described in test_images/README.md). The fingerprint is shown around mid-grey: darker = negative,
 lighter = positive. Every photo of the training set goes through this chain: blur in linear light, then H.264, then
 decoding (METHOD §6).*
@@ -346,7 +347,7 @@ The references below position the components of this study; their tasks, dataset
   blur provide masks for a DeepLab detector; real and synthetic data are also combined. Random JPEG compression during
   preprocessing discourages dataset-specific low-level cues, a conceptual precedent for the coding-chain treatment
   here. Its synthetic region masks and JPEG augmentation serve a different role from native video labels and H.264
-  approximate flat-region noise-floor alignment.
+  exploratory residual-statistics alignment.
 - **Li et al., [Decoupling Perception and Calibration: Label-Efficient Image Quality Assessment Framework (LEAF)](https://arxiv.org/abs/2601.20689)
   (arXiv preprint, January 2026).** A frozen InternVL teacher supplies quality judgments and confidence-weighted pairwise
   preferences to an ImageNet-pretrained ConvNeXt student, with optional calibration using limited human quality scores.

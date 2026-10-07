@@ -95,6 +95,10 @@ variation with unknown physical blur lengths. The frame labels do not establish 
 
 ## 2. Material
 
+The counts below describe the fixed data snapshot used by the reported runs. The 37-file cohort means files
+represented in that labelled-frame snapshot, not 37 completed labelling jobs. The source dataset builder continues
+processing and labelling additional material; its live database counts must not be substituted into these results.
+
 | source | role | size |
 |---|---|---|
 | video frames | real, native blur, including motion blur; blur types are not separated; both classes | 177 imported video files (H.264, 1920×1080, 4:2:0); 37 processed and labelled by the VLM teacher (Section 4), representing 36 distinct video groups; ~4.3 M frames in total, 374,019 of them labelled |
@@ -102,8 +106,8 @@ variation with unknown physical blur lengths. The frame labels do not establish 
 | 4K video frames | sharp anchor + simulated camera blur | 231 published 4K video frames (JPEG), from which the visibly blurred ones were removed by hand; reduced to 1920×1080 by exact 2×2 averaging. In the inspected material they retain fine noise / grain and JPEG block artefacts; their flat-region residual statistics differ from those of the encoded 1080p frames |
 
 **Video files and groups.** Of the 37 processed video files, one is a duplicate of another under a different filename.
-They therefore form **36 distinct video groups**. The two filenames are assigned to the same group for splitting, so
-the duplicate cannot cross the train / validation / test boundary. File-level descriptions and statistics still refer
+Frame selection excludes the duplicate copy, leaving **36 distinct video groups** for splitting, so the duplicate
+cannot cross the train / validation / test boundary. File-level descriptions and statistics still refer
 to 37 files; the split and the 3,819 labelled framing units refer to the 36 groups.
 
 **Why these videos.** The frames come from NSFW videos. This material concentrates the cases that are hard for
@@ -224,7 +228,7 @@ than converting motion directly into a blur label.
 
 ## 4. Labelling with a frozen VLM teacher
 
-Every frame is put to a frozen vision-language model (Qwen3.5-4B-bf16) three times, with three different questions. The
+Each frame submitted for labelling is put to a frozen vision-language model (Qwen3.5-4B-bf16) three times, with three different questions. The
 answers are kept separately as a three-letter code, one letter per question, in the order Q1, Q2, Q3; `u` marks an
 unreadable reply (no explicit yes / no). **The letters do not mean the same for every question:**
 - **Q1** asks about blur and motion blur: `b` = blurry / motion blur, `s` = *no* blur seen. An `s` on Q1 does **not**
@@ -440,8 +444,8 @@ The sharp and blurred sides are selected by different rules, on purpose.
   differ because the motion changes them). This retains the range of native blur present in the selected material: weak and strong,
   partial and full, slow and fast, periodic.
 
-**Splits.** Whole video groups go to train, validation or test. The 37 processed files form 36 distinct groups, with
-the duplicate filenames assigned together. Validation and test are balanced per group (as many sharp as blurred
+**Splits.** Whole video groups go to train, validation or test. The 37 processed files yield 36 distinct groups after
+the duplicate copy is excluded. Validation and test are balanced per group (as many sharp as blurred
 frames from each group), so group identity alone does not predict the label in those splits.
 
 | split | sharp | blurred | video groups |
@@ -464,6 +468,22 @@ training frames). Consecutive blurred frames are correlated neighbours at the vi
 The photos supply two **synthetic anchor ranges** with an exact injected blur length; the frames supply native blur
 variation. Their unknown physical blur lengths do not establish that they fill a particular intermediate pixel range.
 
+**Originals and splits.** The anchor pool contains 48,566 camera-photo files plus 231 reviewed 4K frames, or 48,797
+originals. Originals are split before synthesising variants: the EXIF-selected photos by the manifest's `shoot_group`, the
+border-cropped photos and 4K frames by source album, with 70/15/15 targets. The frozen index checks that no group
+crosses a split. The original pools before the evaluation cap are:
+
+| anchor source | total originals | train | validation | test |
+|---|---|---|---|---|
+| camera-EXIF photos | 5,194 | 3,587 | 803 | 804 |
+| border-cropped photos | 43,372 | 29,736 | 6,818 | 6,818 |
+| reviewed 4K frames | 231 | 161 | 35 | 35 |
+| total | 48,797 | 33,484 | 7,656 | 7,657 |
+
+Validation and test are each capped to 2,000 originals, retaining one sharp and one blurred recipe row per original
+(2,000 per class). The 11,313 other held-out originals are omitted from the capped index, not returned to training.
+Synthesised variants inherit the original's split. The three published runs use the same index (Section 10).
+
 **What the photos stand for, and why they are blurred.** An original photo (L = 0) is assigned to the sharp class by
 construction; the 1–3 px variants extend this anchor to a small injected-blur tolerance (Section 6.1). The teacher's
 label does not override these assignments. L = 0 measures the absence of added synthetic blur, not the absence of
@@ -475,13 +495,28 @@ complementing the less controlled blur of the video frames.
 **Why the video path.** On flat regions of the inspected photos, fine sensor noise / grain contributes to the
 high-pass residual. Synthetic camera blur can turn it into parallel streaks along the motion direction, visible in
 the fingerprint even at 3 px in the inspected examples. This may supply a shortcut that differs from the native video
-frames, so every photo is re-encoded after blurring. In the flat-region measurements used here, one H.264 encoding
-reduced this discrepancy; CRF 23 was the closest of the tested settings to the 1080p frames' measured residual floor.
-The tested JPEG path instead left a stronger 8 px block pattern. These are observations on this material and these
-encoding settings, not claims that noise dominates all photo detail, that video codecs remove all noise, or that every
+frames, so every photo is re-encoded after blurring. An exploratory codec comparison used 40 photos and 300
+sharp-labelled frames (100 from each of three videos), with PNG, JPEG qualities 70/80/90/95 and H.264 CRF 18/23/28/33.
+CRF 23 ranked closest to all three video references under the script's heuristic distance combining flat-region
+residual-to-edge ratio, near-zero residual share, 8 px block pattern and horizontal correlation. It was not closest
+on flat-region residual amplitude alone. These float64 ideal-residual statistics are proxies for smooth-region
+detail and coding structure, not isolated sensor-noise measurements or measurements of the published bfloat16 input.
+The observations do not imply that noise dominates all photo detail, that video codecs remove all noise, or that every
 photo has the same noise floor as every frame. H.264 also retains or introduces artefacts. The synthetic path shares
 the codec family and settings below with the frame domain, but a single encoded frame is intra-coded: it does not
 reproduce temporal artefacts from the P / B frames of a real group of pictures.
+
+The probe defines a flat-region proxy as mean `|d|` over the lowest-residual 30% of 16 × 16 cells; these are not
+independently annotated noise-only regions. `flat_edge` is this mean divided by the strongest 10% of cells' mean,
+`zero` is the image fraction with `|d| < 2 × 10⁻⁴`, `block8` compares residual steps at 8 px boundaries with those
+elsewhere, and `hcorr` is horizontal lag-one residual correlation in the selected flat cells. The exploratory distance,
+applied to group medians for a video reference `v` and photo encoding `p`, is
+`D = |ln(flat_edge_v / flat_edge_p)| + 5|zero_v − zero_p| + 5|ln(block8_v / block8_p)| + 2|hcorr_v − hcorr_p|`.
+CRF 23 gives `D = 3.1301 / 1.2301 / 1.2404` for the three reference groups. For comparison, the median flat-region
+mean `|d| × 10³` is 0.1384 / 0.1616 / 0.1764 for the videos, 0.7580 for uncoded photos, and
+0.3037 / 0.2202 / 0.1859 / 0.1644 for CRF 18 / 23 / 28 / 33. Higher CRFs can therefore be closer on that one
+amplitude statistic while differing more on the composite criterion. This unblurred-photo probe does not validate
+matching of the final mixed sharp / blurred training distribution. The measurement code and per-image tables are not yet public.
 
 > original → flip / 90° rotation → camera motion blur in linear light → H.264 (x264 High, 4:2:0, BT.709, one frame) → decoded
 
@@ -754,6 +789,14 @@ generalisation to unseen videos.
 the frame selection and the initial weights, plus the software and hardware versions; a resume with changed code is
 refused.
 
+The three reported 100-epoch runs share index SHA-256
+`1d82624aad595396f1943c80cc2acf520afd655ae2cd4f168c20047d2b548810` and frame-selection SHA-256
+`5b2f70e6515b7b8c682d746b17e28ea9304fab20d011ae0fd63b6d394bcc7003`. These identify the fixed inputs to those runs;
+later source-database additions do not update them or the results reported here.
+The index and selection hashes identify records and labels, not a complete checksum manifest of every source image's
+pixels. The available provenance therefore does not independently prove historical pixel immutability or the absence
+of unrecognised near-duplicates across distinct source groups.
+
 ## 11. The publishable runs
 
 | run | input | result (means per pass over the blurred frames, validation) |
@@ -790,7 +833,7 @@ the code at the resume was verified to be identical to the code at the start.
 
 | run | cause | resumed at | lost and redone |
 |---|---|---|---|
-| RGB | operating-system restart | epoch 33, batch 256 of 750 (optimiser step 24,700) | the steps after the last save (at least 40) |
+| RGB | operating-system restart | epoch 33, physical batch 256 (optimiser step 24,700) | the steps after the last save (at least 40) |
 | edge fingerprint | data-loader error | epoch 70, batch 378 (step 52,300) | the steps after the last save |
 | grayscale | the same data-loader error | epoch 70, batch 378 (step 52,300) | the steps after the last save |
 
@@ -799,16 +842,17 @@ same samples in the same order; in the grayscale run the new retry repeated the 
 result.
 
 *What a resume restores and what it does not.* Restored: the model and optimiser state, the step counter and with it the
-learning-rate schedule, and the random-number states of PyTorch and NumPy. Not restored: the sampler's position inside
-its draws without replacement, i.e. the shuffled order of each stratum and how far it had got. The resumed sampler starts
-every stratum with a fresh shuffle (still derived from the seed and the epoch). Consequences:
+learning-rate schedule, and the PyTorch CPU and NumPy global random-number states. CUDA RNG states and the sampler's
+independent generator state are not saved. The sampler's position inside its draws without replacement (the shuffled
+order of each stratum and how far it had got) is not restored. Resume rebuilds an epoch with a fresh sampler and skips
+the recorded number of physical batches. Consequences:
 - the remaining batches of the interrupted epoch, and all later epochs, contain other samples in another order than an
   uninterrupted run would;
-- in each stratum the pass that was interrupted is cut short: the samples it had already drawn are drawn again in the
-  new pass, so they receive one more exposure than the rest (at most one partial pass per stratum over the whole run);
-- unchanged are the rules that depend only on the seed, the epoch and the sample: the shape grouping of the batches,
-  the flips and rotations, the photo variant (blur length, direction, CRF) and the watermark-mask choice; only which
-  sample meets which draw changes.
+- some previously seen samples may be revisited and others skipped; stratum exposure counts can differ from an
+  uninterrupted run;
+- the same augmentation and shape-bucketing rules remain in force, but changed draws can change batches, rotations
+  and flips; the photo synthesis recipe (blur length, direction, CRF) and watermark choices remain deterministic for
+  each sample and epoch.
 
 The edge-fingerprint and the grayscale runs were interrupted at the same point and resumed with the same seed, so they
 saw the same sequence of samples over the whole run; the RGB run follows the same sequence up to epoch 33, batch 256,
