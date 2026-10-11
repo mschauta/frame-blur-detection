@@ -135,6 +135,36 @@ rounded, signed mesh residual alone reaches validation and internal-test discrim
 examined corpus. Residual-domain learning, blur detection and VLM supervision have prior work listed in the README.
 This plan adds neither a priority claim nor new evidence for statistical equivalence or universal detection.
 
+### 5.1 Test the blur information in the signed residual
+
+The [operator and empirical interpretation](../METHOD.md#72-connection-to-the-conservative-z-residual) connect the
+completed classification experiment to the conservative Z residual. The following extensions are proposed work;
+they have not been executed and must use new or explicitly designated development material for fitting.
+The [companion protocol](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#101-proposed-blur-estimation-experiments)
+supplies the detailed forward-model and measurement checks.
+
+1. **Verify the ideal operator.** Compare raw Q2 cell-area residuals, the exact 3×3 stencil and periodic sinusoidal
+   gains in float64 before applying bfloat16 rounding or per-image processing. Compare exact and rounded fingerprints
+   on constants, affine ramps, edges and noise to quantify which departures come from numerical processing.
+2. **Isolate sign and rounding.** Use the matched retraining pilot in Section 5; an input swap into existing weights
+   cannot isolate these effects. The pilot gives preliminary comparisons. A later factorial study with both signed
+   and unsigned inputs at both precisions would test interactions, with matched seeds, masks, normalisation,
+   companding and architecture. In every case the validity mask remains an input channel.
+3. **Measure controlled blur patterns.** Render analytic steps, lines and textures with known Gaussian or straight-motion
+   PSFs. Sweep width/length, contrast, noise, edge and motion angle, and subpixel phase independently. Model sensor
+   aperture and sampling explicitly; check convergence of any oversampled reference. Retain unnormalised floating
+   residuals and use a common display scale. Record lobe separation, contrast-normalised amplitude and spectra,
+   separately for exact d and the published processing path. Compare with direct edge-profile fits and
+   [scale-normalised Gaussian-derivative baselines](https://people.kth.se/~tony/papers/cvap191.pdf).
+4. **Separate classification from parameter estimation.** With a registered sharp reference, fit
+   `d_B ≈ hθ * d_S` under declared PSF/noise assumptions; without one, restrict the scene model, for example to
+   isolated step edges. Use several edge normals for motion; report orientation modulo 180°, not temporal direction.
+   Hold out scenes, phases, noise levels and PSF families, and report parameter errors and uncertainty. A classifier
+   score is not a measured blur length or a calibrated PSF estimate.
+5. **Control boundaries and coding.** Exclude image/alpha/mask margins covering the declared PSF and residual supports, or use
+   an explicit periodic construction. Run noiseless linear baselines before adding quantization and H.264. Keep
+   textureless-region failures and residual responses to noise/coding visible; they cannot be assumed to be blur.
+
 ## Completion notes
 
 The runner checked the frozen index and current input/cache hashes. The separate selection hash was independently

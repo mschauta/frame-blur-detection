@@ -47,6 +47,24 @@ acceptable background defocus. Residuals retain spatial structure and texture, s
 scene information. These are design goals; the current metrics do not identify the cues learned or validate subject /
 background separation (METHOD §1, §7–8).
 
+### Why the signed fingerprint can carry blur patterns
+
+Before rounding and normalisation, the fingerprint `d = Y - K * Y` is exactly the luminance version of the
+**signed area-conservation residual Z** in RGB Mesh Resampling. It measures the difference between a source sample
+and the average of its raw reconstructed Q2 cell. Algebraically it is a weighted negative discrete Laplacian:
+it responds to curvature, vanishes on constants and interior affine ramps, and retains signed spatial structure.
+Under a compatible spatially invariant blur model, `d(h * Y) = h * d(Y)`. Blur therefore also filters the residual:
+broadened transitions, signed lobes and repeated contours can carry information about blur already in the image.
+The [mesh derivation](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#52-signed-area-residual-centre-displacement-and-correction-field)
+and [METHOD §7.2–7.4](METHOD.md#72-connection-to-the-conservative-z-residual) explain the exact stencil, frequency response
+and relation to the rounded detector input.
+
+The empirical evidence is the residual-input run itself: epoch-99 frame AUC is **0.949 on validation** and
+**0.948 on the separate seven-group test**, as reported below. This supports the claim that the processed signed
+representation carries useful blur-related information on the evaluated material. It does not isolate the benefit
+of sign or identify the model's learned cues. Quantitative blur-width and PSF estimation are separate
+[proposed follow-up experiments](reproduction/EXPERIMENT_PLAN.md#51-test-the-blur-information-in-the-signed-residual).
+
 ### Why the photos go through video coding
 
 ![Exploratory codec comparison: flat-region residual group medians](figures/why_video_coding.svg)
@@ -374,6 +392,14 @@ separately credited openly licensed sources.
 Earlier work provides precedents for blur detection, normalised residual inputs and VLM-based quality supervision.
 The references below position the components of this study; their tasks, datasets and evaluation protocols differ.
 
+- **Marr and Hildreth, [Theory of edge detection](https://doi.org/10.1098/rspb.1980.0020)
+  (Proceedings of the Royal Society B, 1980; [paper](https://www.hms.harvard.edu/bss/neuro/bornlab/qmbc/beta/day4/marr-hildreth-edge-prsl1980.pdf)).**
+  Gaussian smoothing and Laplacian zero crossings provide a precedent for signed second-derivative edge structure
+  across scales. The mesh residual here is a fixed discrete operator, rather than a multiscale LoG detector.
+- **Lindeberg, [Edge detection and ridge detection with automatic scale selection](https://people.kth.se/~tony/papers/cvap191.pdf)
+  (International Journal of Computer Vision, 30(2), 117–154, 1998).** Normalised Gaussian derivatives relate selected
+  scales to diffuse edge and ridge structure. This motivates scale-aware edge-profile baselines for the proposed
+  blur-estimation experiments; the current classifier does not implement automatic derivative-scale selection.
 - **Shi, Xu and Jia, [Discriminative Blur Detection Features](https://www.cv-foundation.org/openaccess/content_cvpr_2014/papers/Shi_Discriminative_Blur_Detection_2014_CVPR_paper.pdf)
   (CVPR, 2014).** Gradient, Fourier and learned local-filter features for blur detection, with the pixel-labelled CUHK
   benchmark. An early precedent for learning from local high-frequency evidence; the method uses feature-based blur
@@ -436,6 +462,11 @@ universal detection or statistical equivalence of the inputs.
 
 - [RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling): the continuous RGB-mesh reconstruction from
   which the edge fingerprint is derived.
+
+  Its [exact Z/Laplacian derivation and blur interpretation](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#53-exact-stencil-and-weighted-discrete-laplacian)
+  explain the operator used here. The [linked empirical discussion](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#58-empirical-evidence-from-frame-blur-detection)
+  connects that theory to this detector's results, while its [blur-estimation protocol](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#101-proposed-blur-estimation-experiments)
+  describes further experiments. These links pin the documentation version used for this explanation.
 
 ## License
 

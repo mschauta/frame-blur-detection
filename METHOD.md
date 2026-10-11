@@ -666,6 +666,120 @@ been tested. It supports the usefulness of this representation on this dataset, 
 ideas or their combination, statistical equivalence of the runs, or universal blur detection. Further related work and
 the limits of comparison are listed in the README.
 
+### 7.2 Connection to the conservative Z residual
+
+The fingerprint's mesh origin gives a precise meaning to the signed residual. This subsection describes the
+**ideal unrounded, unmasked linear operator**; the published detector applies the numerical processing already
+documented in Section 7. Let `A_Y` be the exact average over one source cell of the raw nine-node Q2 mesh reconstructed
+from luminance samples Y. The [companion derivation](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#52-signed-area-residual-centre-displacement-and-correction-field)
+distinguishes the area-average residual from the centre-node displacement:
+
+```text
+Z_Y = Y - A_Y = Y - K * Y = d
+Δ_Y = (9/4) Z_Y.
+```
+
+Positive d means that the raw cell average is too low; negative d means it is too high. Multiplying d by the physical
+cell area gives the missing signed integral. It is not a nonnegative loss or an estimate of optical energy lost from
+the scene. In the conservative mesh, the correction field is `Δ_Y (1 - ξ²)(1 - η²)` in local coordinates
+`ξ,η ∈ [-1,1]`: it vanishes on shared boundaries and has cell average `(4/9) Δ_Y = d`. The detector uses the residual
+directly through its fixed kernel; it does not construct or calibrate a mesh and does not use Δ_Y as its input.
+
+Write `S_axis` and `S_diag` for the sums of the four axial and four diagonal luminance neighbours. Exact substitution
+of the mesh node rules gives the [source-cell stencil](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#53-exact-stencil-and-weighted-discrete-laplacian):
+
+```text
+A_Y = (92 Y + 10 S_axis + 3 S_diag) / 144
+d   = (52 Y - 10 S_axis - 3 S_diag) / 144
+
+L_axis Y = S_axis - 4 Y
+L_diag Y = S_diag - 4 Y
+L_w Y    = (10 L_axis Y + 3 L_diag Y) / 16
+d        = -(1/9) L_w Y.
+```
+
+Thus d is exactly a weighted negative discrete Laplacian. For a smooth luminance field y sampled on a square grid
+of pitch a, `d = -(a²/9) ∇²y + O(a⁴)` with bounded fourth derivatives. It is curvature-sensitive rather than simply
+slope-sensitive: an interior affine ramp has zero residual regardless of its constant slope. An isolated monotone
+blurred edge has signed lobes where its slope changes, rather than a uniform response across a linear ramp.
+Constants vanish even with edge replication; affine cancellation needs an interior neighbourhood or a true affine
+extension. These exact statements need not hold for the rounded published fingerprint, including in flat regions.
+
+### 7.3 Frequency response and the blur carried by the residual
+
+On an infinite or periodic source lattice, with angular frequencies `ωx,ωy ∈ [-π,π]` in radians per source pixel, the exact
+[Fourier response](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#54-frequency-response) is
+
+```text
+d_hat = G_d Y_hat
+G_d   = (13 - 5 cos ωx - 5 cos ωy - 3 cos ωx cos ωy) / 36
+      = (ωx² + ωy²)/9 + O(||ω||⁴)   near DC.
+```
+
+The gain is zero at DC, positive at all other frequencies and bounded by `5/9`; it is `4/9` at axial Nyquist and
+`5/9` at diagonal Nyquist. Its leading low-frequency response is isotropic, with square-grid orientation dependence
+at higher frequencies. Signed second-derivative representations and their scale dependence have precedents in
+[Marr and Hildreth (1980)](https://doi.org/10.1098/rspb.1980.0020) and
+[Lindeberg (1998)](https://people.kth.se/~tony/papers/cvap191.pdf); the specific coefficients here follow from the mesh
+construction, rather than from those references.
+
+For a discrete spatially invariant blur `B = h * S + n`, with sharp reference S, normalized PSF h and additive noise n,
+the fixed residual operator `L_d = I - K` commutes with convolution:
+
+```text
+d_B     = h * d_S + L_d n
+d_B_hat = G_d H S_hat + G_d n_hat.
+```
+
+This is exact on compatible infinite/periodic grids or away from boundary effects. It explains how blur can remain
+visible as spatial structure in the residual without adding information to the image. For a nonnegative unit-sum
+PSF, `|H| ≤ 1`, so noise-free global squared residual energy cannot increase under periodic blur; local amplitudes
+and motion-length trends need not be monotone. Sampling aliasing, nonlinear coding, spatially varying blur and the
+detector's rounding/normalisation are outside this simple convolution identity.
+
+In a continuous, adequately sampled model, Gaussian blur of standard deviation σ pixels has transfer function
+`H(ω) = exp(-σ² ||ω||²/2)`. A centred uniform straight-motion segment with total displacement vector v pixels has
+`H(ω) = sinc((ω · v)/2)`, where `sinc(q) = sin(q)/q` and `sinc(0) = 1`. It filters directions differently: one straight
+edge constrains only motion projected onto its normal. Reversing v leaves this centred transfer function unchanged;
+edge polarity and motion orientation must not be interpreted as the direction of time. The actual discrete blur
+used in Section 6 also includes the tent reconstruction and the subsequent codec path.
+
+For an isolated Gaussian-blurred step `yσ(u) = b + c Φ(u/σ)`, where u and σ are measured in pixels, c is signed contrast
+and Φ is the standard normal cumulative distribution function, the well-sampled approximation `σ >> 1` gives
+
+```text
+d(u) ≈ c u exp(-u²/(2σ²)) / (9 sqrt(2π) σ³)
+lobe separation ≈ 2σ
+max |d| ≈ |c| exp(-1/2) / (9 sqrt(2π) σ²).
+```
+
+This predicts weaker, more separated raw lobes as a fixed-contrast Gaussian edge broadens. It is an asymptotic
+consequence of the exact stencil, not a calibration of the detector score. Near pixel-scale widths, fit a sampled
+forward model including edge phase, orientation and sensor aperture. The [full blur/edge analysis](https://github.com/mschauta/rgb-mesh-resampling/blob/c9823711efb151eda91561ef06d12650e00bf563/METHOD.md#55-relation-to-pre-existing-blur)
+gives the assumptions and derivation. Existing scene softness, texture, contrast and noise confound a width estimate
+from residual magnitude alone.
+
+### 7.4 Empirical support and further experiments
+
+There are two distinct forms of support. Visual inspection of the blur ladders reports thickening and repeated
+signed contours (Section 7). The learned comparison provides quantitative evidence: the processed residual-input
+model reaches epoch-99 frame AUC **0.949 on validation** and **0.948 on the separate seven-group internal test**, close
+to the full-image runs on the evaluated corpus. The [validation comparison](README.md#results-validation-100-epochs),
+[validation uncertainty](reproduction/uncertainty/README.md) and [test report](reproduction/heldout/RESULTS.md#primary-results)
+document these measurements. They support the empirical claim that the practical signed representation carries
+useful blur-related information under this teacher-reference protocol.
+
+They do not identify the cues learned, isolate a causal benefit of retaining sign, establish equivalent performance
+or recover a PSF. The actual [inference implementation](blurdetect/model.py) rounds the convolution input, kernel and
+output to bfloat16 before subtracting from float32 luminance. Per-image p99.5 scaling, its floor, signed square-root
+companding and masking then change the representation. In particular, above the scale floor, normalisation reduces
+dependence on raw amplitude, so the Gaussian peak formula cannot be applied directly to the model's processed input.
+Residual computation also precedes masking, allowing masked RGB values to influence neighbouring valid residuals.
+
+The [follow-up plan](reproduction/EXPERIMENT_PLAN.md#51-test-the-blur-information-in-the-signed-residual) connects this
+evidence to controlled signed/unsigned and exact/rounded comparisons and to possible quantitative blur estimation.
+These are prospective studies. They do not change the published checkpoints, thresholds or reported results.
+
 ## 8. Model, loss and sampling
 
 **Model.** A ConvNeXt (Small; Base and Large are prepared) trunk up to stride 16, ImageNet weights (chosen over a DINOv3
