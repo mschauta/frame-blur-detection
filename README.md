@@ -37,7 +37,7 @@ This page summarises the approach and the results.
 | label noise | a separate non-learned motion and sharpness measurement ranks frames within a shot and selects better-ranked sharp-labelled frames; it never relabels a frame and is never a model input | METHOD §3, §5 |
 | photos | a known injected camera-blur length at the two extremes: 0–3 px = construction sharp label, 16–30 px = blurred label; `3 < L < 16` px is not trained; every photo goes through the video path (blur in linear light → H.264 → decode) to reduce the residual-statistics gap to the sampled video frames | METHOD §6 |
 | inputs | three runs on the same recipe: the RGB image, a grayscale image, and an edge fingerprint (the residual of a 3 × 3 RGB-mesh reconstruction kernel, signed, per-image normalised) | METHOD §7 |
-| model | ImageNet ConvNeXt-Small to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
+| model | ConvNeXt-Small (the original ConvNeXt, not ConvNeXt V2) initialised from torchvision's supervised ImageNet-1K weights, to stride 16, one logit per 16 px cell, masked log-sum-exp pooling: a soft maximum over the cells, so a clearly blurred region can decide the image | METHOD §8 |
 | training | 100 epochs, no early stopping, every epoch saved, provenance recorded (hashes of code, configuration, selection and weights) | METHOD §8, §10 |
 
 The fingerprint was the starting representation. Its purpose is to direct learning towards **blur-related edge
@@ -367,8 +367,9 @@ In use, *blur* stands for "not usable" (METHOD §1). `test_images/typical` shows
 | `weights/gray_ep058.pt` | grayscale image | 58 | 0.112 / 0.0321 / 0.0064 | 0.947 |
 | `weights/p99_ep053.pt` | edge fingerprint | 53 | 0.570 / 0.1320 / 0.0491 | 0.951 |
 
-ConvNeXt-Small (ImageNet-pretrained) to stride 16, about 34 M parameters; each file holds the state dict and its metadata
-(input type, epoch, thresholds). The last epoch is the main result. The three further checkpoints (RGB epoch 73, grayscale epoch 58,
+ConvNeXt-Small to stride 16, about 34 M parameters: the original ConvNeXt architecture (Liu et al., 2022, as
+implemented in torchvision; not ConvNeXt V2), initialised before training from torchvision's supervised ImageNet-1K weights `ConvNeXt_Small_Weights.IMAGENET1K_V1` (`convnext_small-0c510722.pth`). Each file
+holds the complete state dict and its metadata (input type, epoch, thresholds); nothing is downloaded when it is loaded. The last epoch is the main result. The three further checkpoints (RGB epoch 73, grayscale epoch 58,
 fingerprint epoch 53) were chosen on the external evaluation sets as the stricter alternatives: on the GoPro pairs and the
 demo frames they catch more blur than epoch 99, at the cost of keeping fewer sharp photos. Because they were chosen on
 these sets, the sets are selection data for them. All six are now included in the

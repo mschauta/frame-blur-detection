@@ -782,8 +782,10 @@ These are prospective studies. They do not change the published checkpoints, thr
 
 ## 8. Model, loss and sampling
 
-**Model.** A ConvNeXt (Small; Base and Large are prepared) trunk up to stride 16, ImageNet weights (chosen over a DINOv3
-pre-training, Section 11). The first layer is adapted to the input channels; the mask channel starts at zero. A 1×1 head gives one logit
+**Model.** A ConvNeXt (Small; Base and Large are prepared) trunk up to stride 16: the original ConvNeXt architecture
+(Liu et al., 2022, as implemented in torchvision), not ConvNeXt V2. It is initialised from torchvision's supervised ImageNet-1K weights `ConvNeXt_Small_Weights.IMAGENET1K_V1` (`convnext_small-0c510722.pth`),
+sha256 `0c510722adfd92966a2bd72b92f785ca05966bbac03cafe2f7a90b1f54bfab9a`; the `V1` is torchvision's weight-version
+tag, not the architecture version. These weights were chosen over a DINOv3 pre-training (Section 11). The first layer is adapted to the input channels; the mask channel starts at zero. A 1×1 head gives one logit
 per 16 px cell; the image logit is a masked log-sum-exp over the cells with a learnable sharpness r, normalised by the
 number of cells: a differentiable soft maximum. It was chosen so that blur anywhere can raise the image score, but it is
 not a logical "any cell" rule: with one dominant cell the image logit is about `local − log(n) / r`, so the size of a
@@ -975,7 +977,8 @@ property carries it, whether the models use the same one, or statistically equiv
 probes transfer when every model is given the finished input of the other models (Section 9); it does not resolve those
 causal questions.
 
-**Choice of pre-training.** Before the publishable runs, a ConvNeXt-Small with DINOv3 pre-training was trained with the
+**Choice of pre-training.** Before the publishable runs, a ConvNeXt-Small with Meta's DINOv3 weights (self-supervised on
+LVD-1689M, `dinov3_convnext_small_pretrain_lvd1689m`; the same architecture, loaded into the torchvision layout) was trained with the
 same recipe on the edge fingerprint (60 epochs). At this learning rate it stayed behind the ImageNet-pretrained model in
 every phase and was about three times noisier from epoch to epoch (final frame AUC 0.936). This comparison decided the
 model: the ImageNet-pretrained ConvNeXt was kept for the publishable runs.
