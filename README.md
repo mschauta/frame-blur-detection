@@ -4,6 +4,13 @@
 
 [Magyar nyelvű poszter](figures/frame_blur_detection_poster_hu.png).
 
+**Later models.** This page reports the first publication. Two later models are published separately:
+
+- [Update 1](https://github.com/mschauta/frame-blur-detection-update-1): ConvNeXt-Base, 173 videos, the float32
+  fingerprint;
+- [Update 2](https://github.com/mschauta/frame-blur-detection-update-2): trained on Update 1's cell maps, with a
+  continuous blur mass.
+
 The goal is a **universal, blur-specific detector for video frames**: a model that separates sharp frames from frames
 degraded by blur, motion blur in particular, independently of the film, the shot or the recording. The reported
 100-epoch runs use a fixed, narrow, people-centred snapshot (37 processed video files, representing 36 unique video groups: one file
@@ -76,6 +83,13 @@ closest under the combined flat/edge, near-zero, block and horizontal-correlatio
 closer on amplitude alone. These are residual proxies, not isolated sensor-noise measurements or proof of matching the
 final training distribution. The [released medians and exact criterion](reproduction/README.md#codec-comparison) make
 the arithmetic checkable. Every training photo follows blur in linear light → H.264 → decode (METHOD §6).
+
+*Later finding.* Each photo is coded as a single frame, so every photo anchor is an intra-coded I-frame, and this
+comparison could not see differences between frame types. Most video frames are P- or B-frames. A two-video
+experiment published with Update 2
+([experiments/r4k1_codec_frametype](https://github.com/mschauta/frame-blur-detection-update-2/tree/main/experiments/r4k1_codec_frametype))
+shows that the coded frame type changes the scores of the later detectors. Inside a shot, the I-frame scores sharper
+than its P/B neighbours, most strongly on a low-bitrate encode.
 
 ## Results (validation, 100 epochs)
 
@@ -461,6 +475,10 @@ universal detection or statistical equivalence of the inputs.
 
 ## Related work by the author
 
+- [Frame Blur Detection — Update 1](https://github.com/mschauta/frame-blur-detection-update-1): the larger corpus
+  (173 videos), ConvNeXt-Base and the float32 fingerprint.
+- [Frame Blur Detection — Update 2](https://github.com/mschauta/frame-blur-detection-update-2): trained on Update 1's
+  cell maps, with a continuous blur mass, and the two-video experiment on the coded frame type.
 - [RGB Mesh Resampling](https://github.com/mschauta/rgb-mesh-resampling): the continuous RGB-mesh reconstruction from
   which the edge fingerprint is derived.
 
